@@ -33,8 +33,6 @@
 #include "scrypt.h"
 #include "pbkdf2.h"
 
-#include "net.h"
-
 #define SCRYPT_BUFFER_SIZE (131072 + 63)
 
 #if defined (OPTIMIZED_SALSA) && ( defined (__x86_64__) || defined (__i386__) || defined(__arm__) )
