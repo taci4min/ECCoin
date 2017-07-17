@@ -29,11 +29,9 @@ win32{
     OPENSSL_INCLUDE_PATH=C:/deps/openssl-1.0.1l/include
     OPENSSL_LIB_PATH=C:/deps/openssl-1.0.1l
     MINIUPNPC_INCLUDE_PATH=C:/deps/
-    MINIUPNPC_LIB_PATH=C:/deps/miniupnpc
+    MINIUPNPC_LIB_PATH=C:/deps/miniupnpc/
     QRENCODE_INCLUDE_PATH=C:/deps/qrencode-3.4.4
     QRENCODE_LIB_PATH=C:/deps/qrencode-3.4.4/.libs
-    LIBEVENT_LIB_PATH=C:/deps/libevent-2.1.8/.libs
-    LIBEVENT_INCLUDE_PATH=C:/deps/libevent-2.1.8/include
 }
 
 
@@ -96,11 +94,11 @@ contains(USE_UPNP, -) {
         USE_UPNP=1
     }
     DEFINES += DMINIUPNP_STATICLIB
-
     INCLUDEPATH += $$MINIUPNPC_INCLUDE_PATH
     LIBS += $$join(MINIUPNPC_LIB_PATH,,-L,) -lminiupnpc
     win32:LIBS += -liphlpapi
 }
+
 
 # use: qmake "USE_DBUS=1"
 contains(USE_DBUS, 1) {
@@ -183,44 +181,21 @@ HEADERS += \
     src/allocators.h \
     src/base58.h \
     src/bignum.h \
-    src/checkpoints.h \
     src/clientversion.h \
-    src/coincontrol.h \
-    src/compat.h \
-    src/crypter.h \
-    src/db.h \
     src/init.h \
     src/key.h \
     src/keystore.h \
     src/main.h \
-    src/messages.h \
-    src/miner.h \
-    src/mruset.h \
-    src/net.h \
-    src/pbkdf2.h \
     src/network/protocol.h \
     src/script.h \
     src/serialize.h \
     src/strlcpy.h \
     src/sync.h \
     src/threadsafety.h \
-    src/txdb-leveldb.h \
     src/uint256.h \
     src/ui_interface.h \
     src/version.h \
-    src/wallet.h \
-    src/walletdb.h \
-    src/kernel.h \
-    src/block.h \
-    src/blockindex.h \
-    src/chain.h \
-    src/disk.h \
     src/global.h \
-    src/locator.h \
-    src/mempool.h \
-    src/merkle_transaction.h \
-    src/points.h \
-    src/transaction.h \
     src/batchscanner.h \
     src/validation.h \
     src/network/node.h \
@@ -237,12 +212,9 @@ HEADERS += \
     src/util/utilmoneystr.h \
     src/util/utilstrencodings.h \
     src/util/utiltime.h \
-    src/random.h \
     src/util/utilexceptions.h \
     src/amount.h \
     src/network/subnet.h \
-    src/crypto_endian.h \
-    src/byteswap.h \
     src/noui.h \
     src/json/json_spirit.h \
     src/json/json_spirit_error_position.h \
@@ -256,11 +228,35 @@ HEADERS += \
     src/daemon.h \
     src/crypto/hash.h \
     src/crypto/scrypt.h \
-    src/rpc/bitcoinrpc.h
+    src/rpc/bitcoinrpc.h \
+    src/chain/blockindex.h \
+    src/chain/block.h \
+    src/chain/chain.h \
+    src/chain/checkpoints.h \
+    src/wallet/db.h \
+    src/tx/disk.h \
+    src/mining/kernel.h \
+    src/wallet/crypter.h \
+    src/tx/mempool.h \
+    src/tx/merkletx.h \
+    src/p2p/messages.h \
+    src/chain/locator.h \
+    src/wallet/walletdb.h \
+    src/wallet/wallet.h \
+    src/tx/txdb-leveldb.h \
+    src/util/random.h \
+    src/crypto/pbkdf2.h \
+    src/mining/miner.h \
+    src/network/net.h \
+    src/wallet/coincontrol.h \
+    src/network/mruset.h \
+    src/network/compat.h \
+    src/tx/tx.h \
+    src/tx/outpoint.h \
+    src/tx/inpoint.h
 
 
 SOURCES += \
-    src/txdb-leveldb.cpp \
     src/network/node.cpp \
     src/network/requests.cpp \
     src/network/netaddr.cpp \
@@ -273,49 +269,51 @@ SOURCES += \
     src/util/utiltime.cpp \
     src/util/utilstrencodings.cpp \
     src/util/utilmoneystr.cpp \
-    src/random.cpp \
     src/util/utilexceptions.cpp \
     src/network/subnet.cpp \
     src/rpc/rpcnet.cpp \
     src/rpc/rpcwallet.cpp \
     src/daemon.cpp \
     src/network/addrman.cpp \
-    src/block.cpp \
-    src/blockindex.cpp \
-    src/chain.cpp \
-    src/checkpoints.cpp \
-    src/crypter.cpp \
-    src/db.cpp \
-    src/disk.cpp \
     src/global.cpp \
     src/init.cpp \
-    src/kernel.cpp \
     src/key.cpp \
     src/keystore.cpp \
-    src/locator.cpp \
     src/main.cpp \
-    src/mempool.cpp \
-    src/merkle_transaction.cpp \
-    src/messages.cpp \
-    src/miner.cpp \
-    src/net.cpp \
     src/noui.cpp \
-    src/pbkdf2.cpp \
-    src/points.cpp \
     src/network/protocol.cpp \
     src/script.cpp \
     src/sync.cpp \
-    src/transaction.cpp \
     src/version.cpp \
-    src/walletdb.cpp \
-    src/wallet.cpp \
     src/crypto/hash.cpp \
     src/crypto/scrypt.cpp \
     src/rpc/bitcoinrpc.cpp \
     src/rpc/rpcblockchain.cpp \
     src/rpc/rpcdump.cpp \
     src/rpc/rpcmining.cpp \
-    src/rpc/rpcrawtransaction.cpp
+    src/rpc/rpcrawtransaction.cpp \
+    src/chain/block.cpp \
+    src/chain/blockindex.cpp \
+    src/chain/chain.cpp \
+    src/chain/checkpoints.cpp \
+    src/p2p/messages.cpp \
+    src/tx/txdb-leveldb.cpp \
+    src/tx/mempool.cpp \
+    src/chain/locator.cpp \
+    src/wallet/wallet.cpp \
+    src/wallet/walletdb.cpp \
+    src/tx/merkletx.cpp \
+    src/tx/tx.cpp \
+    src/util/random.cpp \
+    src/mining/kernel.cpp \
+    src/mining/miner.cpp \
+    src/tx/disk.cpp \
+    src/wallet/db.cpp \
+    src/crypto/pbkdf2.cpp \
+    src/wallet/crypter.cpp \
+    src/network/net.cpp \
+    src/tx/outpoint.cpp \
+    src/tx/inpoint.cpp
 
 
 CODECFORTR = UTF-8
@@ -383,7 +381,7 @@ windows:!contains(MINGW_THREAD_BUGFIX, 0) {
 
 macx:LIBS += -framework Foundation -framework ApplicationServices -framework AppKit
 macx:DEFINES += MAC_OSX MSG_NOSIGNAL=0
-macx:TARGET = "Eccoind"
+macx:TARGET = "ECCoind"
 macx:QMAKE_CFLAGS_THREAD += -pthread
 macx:QMAKE_LFLAGS_THREAD += -pthread
 macx:QMAKE_CXXFLAGS_THREAD += -pthread
@@ -391,7 +389,7 @@ macx:QMAKE_CXXFLAGS_THREAD += -pthread
 # Set libraries and includes at end, to use platform-defined defaults if not overridden
 INCLUDEPATH += $$BOOST_INCLUDE_PATH $$BDB_INCLUDE_PATH $$OPENSSL_INCLUDE_PATH $$QRENCODE_INCLUDE_PATH $$LIBEVENT_INCLUDE_PATH
 LIBS += $$join(BOOST_LIB_PATH,,-L,) $$join(BDB_LIB_PATH,,-L,) $$join(OPENSSL_LIB_PATH,,-L,) $$join(QRENCODE_LIB_PATH,,-L,) $$join(LIBEVENT_LIB_PATH,,-L,)
-LIBS += -lssl -lcrypto -ldb_cxx$$BDB_LIB_SUFFIX -levent
+LIBS += -lssl -lcrypto -ldb_cxx$$BDB_LIB_SUFFIX
 # -lgdi32 has to happen after -lcrypto (see  #681)
 win32:LIBS += -lws2_32 -lshlwapi -lmswsock -lole32 -loleaut32 -luuid -lgdi32
 LIBS += -lboost_system$$BOOST_LIB_SUFFIX -lboost_filesystem$$BOOST_LIB_SUFFIX -lboost_program_options$$BOOST_LIB_SUFFIX -lboost_thread$$BOOST_THREAD_LIB_SUFFIX
@@ -400,6 +398,7 @@ macx:LIBS += -lboost_chrono$$BOOST_LIB_SUFFIX
 !windows:!macx {
     LIBS += -lboost_chrono
 }
+
 
 
 contains(RELEASE, 1) {
