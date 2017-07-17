@@ -1,15 +1,15 @@
 #ifndef MESSAGES_H
 #define MESSAGES_H
 
-#include "checkpoints.h"
-#include "db.h"
+#include "chain/checkpoints.h"
+#include "wallet/db.h"
 #include "init.h"
-#include "kernel.h"
+#include "mining/kernel.h"
 #include "main.h"
-#include "net.h"
-#include "txdb-leveldb.h"
+#include "network/net.h"
+#include "tx/txdb-leveldb.h"
 #include "ui_interface.h"
-#include "random.h"
+#include "util/random.h"
 
 
 

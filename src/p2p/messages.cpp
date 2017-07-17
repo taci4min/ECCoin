@@ -1,9 +1,3 @@
-#include "messages.h"
-#include "mempool.h"
-#include "validation.h"
-
-#include "network/proxyutils.h"
-
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
@@ -11,6 +5,12 @@
 #include <boost/filesystem/fstream.hpp>
 #include <tuple>
 #include <map>
+
+#include "messages.h"
+#include "tx/mempool.h"
+#include "validation.h"
+
+#include "network/proxyutils.h"
 
 
 
@@ -672,7 +672,7 @@ bool ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStream& vR
             }
 
             // Get recent addresses
-            if (pfrom->nVersion >= CADDR_TIME_VERSION || addrman.size() < 1000)
+            if (addrman.size() < 1000)
             {
                 pfrom->PushMessage("getaddr");
                 pfrom->fGetAddr = true;
