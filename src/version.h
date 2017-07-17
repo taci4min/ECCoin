@@ -38,10 +38,6 @@ static const int MIN_PROTO_VERSION = 60033;
 // "sendheaders" command and announcing blocks with headers starts with this version
 static const int SENDHEADERS_VERSION = 60035;
 
-// nTime field added to CAddress, starting with this version;
-// if possible, avoid requesting addresses nodes older than this
-static const int CADDR_TIME_VERSION = 31402;
-
 // BIP 0031, pong message, is enabled for all versions AFTER this one
 static const int BIP0031_VERSION = 60000;
 

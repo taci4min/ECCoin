@@ -1,5 +1,5 @@
 #include "rpc/bitcoinrpc.h"
-#include "compat.h"
+//#include "network/compat.h"
 #include "fs.h"
 #include "init.h"
 #include "noui.h"

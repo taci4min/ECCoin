@@ -7,7 +7,7 @@
 
 #include "bignum.h"
 #include "sync.h"
-#include "net.h"
+#include "network/net.h"
 #include "script.h"
 #include "crypto/scrypt.h"
 #include "global.h"

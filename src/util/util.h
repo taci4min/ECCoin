@@ -14,7 +14,6 @@
 #include "config/bitcoin-config.h"
 #endif
 
-#include "compat.h"
 #include "fs.h"
 #include "sync.h"
 #include "tinyformat.h"

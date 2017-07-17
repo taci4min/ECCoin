@@ -1,22 +1,21 @@
 #ifndef NODE_H
 #define NODE_H
 
+#include <atomic>
+#include <deque>
+#include <openssl/rand.h>
+#include <map>
+
+#include "chain/blockindex.h"
 #include "uint256.h"
 #include "serialize.h"
 #include "sync.h"
 #include "protocol.h"
 #include "mruset.h"
 #include "util/util.h"
-#include "blockindex.h"
 #include "requests.h"
 #include "nodestats.h"
 #include "crypto/hash.h"
-
-#include <atomic>
-#include <deque>
-#include <openssl/rand.h>
-#include <map>
-
 
 extern ServiceFlags nLocalServices;
 extern std::map<CInv, int64_t> mapAlreadyAskedFor;
@@ -163,7 +162,6 @@ public:
         nPingUsecTime = 0;
         nMinPingUsecTime = std::numeric_limits<int64_t>::max();
         hSocket = hSocketIn;
-        nLastSend = 0;
         nLastRecv = 0;
         nLastSendEmpty = GetTime();
         nTimeConnected = GetTime();
@@ -336,6 +334,7 @@ public:
 
         nHeaderStart = -1;
         nMessageStart = -1;
+        nLastSend = GetTime();
     }
 
     void PushVersion();

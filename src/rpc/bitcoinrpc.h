@@ -18,7 +18,7 @@ class CBlockIndex;
 #include "json/json_spirit_utils.h"
 
 #include "util/util.h"
-#include "checkpoints.h"
+#include "chain/checkpoints.h"
 
 static inline std::string leftTrim(std::string src, char chr)
 {

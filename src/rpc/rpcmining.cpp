@@ -5,11 +5,11 @@
 
 #include "main.h"
 #include "db.h"
-#include "txdb-leveldb.h"
+#include "tx/txdb-leveldb.h"
 #include "init.h"
-#include "miner.h"
+#include "mining/miner.h"
 #include "bitcoinrpc.h"
-#include "mempool.h"
+#include "tx/mempool.h"
 
 using namespace json_spirit;
 using namespace std;

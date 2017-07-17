@@ -3,20 +3,20 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "checkpoints.h"
+#include "chain/checkpoints.h"
 #include "init.h"
-#include "net.h"
-#include "txdb-leveldb.h"
+#include "network/net.h"
+#include "tx/txdb-leveldb.h"
 #include "uint256.h"
 #include "ui_interface.h"
-#include "wallet.h"
-#include "walletdb.h"
-#include "chain.h"
+#include "wallet/wallet.h"
+#include "wallet/walletdb.h"
+#include "chain/chain.h"
 #include "rpc/bitcoinrpc.h"
 
 #include "util/util.h"
 #include "util/utilexceptions.h"
-#include "random.h"
+#include "util/random.h"
 
 #include "network/netutils.h"
 #include "network/proxyutils.h"
@@ -589,7 +589,6 @@ bool AppInit2()
 #ifdef USE_UPNP
     fUseUPnP = GetBoolArg("-upnp", USE_UPNP);
 #endif
-
     bool fBound = false;
     if (!fNoListen)
     {

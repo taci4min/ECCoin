@@ -3,15 +3,15 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "checkpoints.h"
-#include "db.h"
-#include "txdb-leveldb.h"
-#include "net.h"
+#include "chain/checkpoints.h"
+#include "wallet/db.h"
+#include "tx/txdb-leveldb.h"
+#include "network/net.h"
 #include "init.h"
 #include "ui_interface.h"
-#include "kernel.h"
+#include "mining/kernel.h"
 #include "crypto/scrypt.h"
-#include "mempool.h"
+#include "tx/mempool.h"
 #include "global.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/random/mersenne_twister.hpp>
@@ -19,9 +19,9 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <stdlib.h>
-#include "random.h"
+#include "util/random.h"
 #include "util/utilstrencodings.h"
-#include "messages.h"
+#include "p2p/messages.h"
 #include "rpc/bitcoinrpc.h"
 
 using namespace std;

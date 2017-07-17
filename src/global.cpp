@@ -1,9 +1,8 @@
-#include "block.h"
-#include "blockindex.h"
-#include "transaction.h"
-#include "points.h"
-#include "merkle_transaction.h"
-#include "chain.h"
+#include "chain/block.h"
+#include "chain/blockindex.h"
+#include "tx/tx.h"
+#include "tx/merkletx.h"
+#include "chain/chain.h"
 
 #include <map>
 #include <set>

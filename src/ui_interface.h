@@ -10,9 +10,7 @@
 #include <boost/signals2/signal.hpp>
 
 #include <string>
-
 #include <stdint.h>
-#include "blockindex.h"
 
 class CBasicKeyStore;
 class CWallet;

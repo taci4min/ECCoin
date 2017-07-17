@@ -2,6 +2,8 @@
 #include "config/bitcoin-config.h"
 #endif
 
+#include <stdarg.h>
+
 #include "util.h"
 #include "random.h"
 #include "fs.h"
@@ -9,8 +11,7 @@
 #include "utilstrencodings.h"
 #include "utiltime.h"
 #include "threadsafety.h"
-
-#include <stdarg.h>
+#include "network/compat.h"
 
 #if (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__DragonFly__))
 #include <pthread.h>

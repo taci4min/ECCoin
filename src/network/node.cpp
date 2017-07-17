@@ -1,12 +1,12 @@
-#include "node.h"
-#include "locator.h"
-#include "proxyutils.h"
-#include "net.h"
-#include "netutils.h"
-
 #include <map>
 #include <string>
 #include <vector>
+
+#include "node.h"
+#include "proxyutils.h"
+#include "net.h"
+#include "netutils.h"
+#include "chain/locator.h"
 
 std::map<CInv, int64_t> mapAlreadyAskedFor;
 uint64_t nLocalHostNonce = 0;

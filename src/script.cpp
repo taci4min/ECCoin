@@ -16,7 +16,7 @@ using namespace boost;
 #include "key.h"
 #include "main.h"
 #include "sync.h"
-#include "random.h"
+#include "util/random.h"
 
 bool CheckSig(vector<unsigned char> vchSig, vector<unsigned char> vchPubKey, CScript scriptCode, const CTransaction& txTo, unsigned int nIn, int nHashType);
 

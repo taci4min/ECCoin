@@ -676,15 +676,11 @@ void ThreadRPCServer()
 
     try
     {
-        vnThreadsRunning[THREAD_RPCLISTENER]++;
         ThreadRPCServer2();
-        vnThreadsRunning[THREAD_RPCLISTENER]--;
     }
     catch (std::exception& e) {
-        vnThreadsRunning[THREAD_RPCLISTENER]--;
         PrintException(&e, "ThreadRPCServer()");
     } catch (...) {
-        vnThreadsRunning[THREAD_RPCLISTENER]--;
         PrintException(NULL, "ThreadRPCServer()");
     }
     LogPrintf("ThreadRPCServer exited\n");
@@ -730,7 +726,6 @@ static void RPCAcceptHandler(boost::shared_ptr< basic_socket_acceptor<Protocol, 
                              AcceptedConnection* conn,
                              const boost::system::error_code& error)
 {
-    vnThreadsRunning[THREAD_RPCLISTENER]++;
 
     // Immediately start accepting new connections, except when we're cancelled or our socket is closed.
     if (error != asio::error::operation_aborted
@@ -770,8 +765,6 @@ static void RPCAcceptHandler(boost::shared_ptr< basic_socket_acceptor<Protocol, 
             delete conn;
         }
     }
-
-    vnThreadsRunning[THREAD_RPCLISTENER]--;
 }
 
 void ThreadRPCServer2()
@@ -898,10 +891,8 @@ void ThreadRPCServer2()
         return;
     }
 
-    vnThreadsRunning[THREAD_RPCLISTENER]--;
     while (!fShutdown)
         io_service.run_one();
-    vnThreadsRunning[THREAD_RPCLISTENER]++;
     StopRequests();
 }
 
@@ -988,7 +979,6 @@ void ThreadRPCServer3(void* parg)
 
     {
         LOCK(cs_THREAD_RPCHANDLER);
-        vnThreadsRunning[THREAD_RPCHANDLER]++;
     }
     AcceptedConnection *conn = (AcceptedConnection *) parg;
 
@@ -999,10 +989,6 @@ void ThreadRPCServer3(void* parg)
         {
             conn->close();
             delete conn;
-            {
-                LOCK(cs_THREAD_RPCHANDLER);
-                --vnThreadsRunning[THREAD_RPCHANDLER];
-            }
             return;
         }
         map<string, string> mapHeaders;
@@ -1071,10 +1057,6 @@ void ThreadRPCServer3(void* parg)
     }
 
     delete conn;
-    {
-        LOCK(cs_THREAD_RPCHANDLER);
-        vnThreadsRunning[THREAD_RPCHANDLER]--;
-    }
 }
 
 json_spirit::Value CRPCTable::execute(const std::string &strMethod, const json_spirit::Array &params) const

@@ -4,11 +4,11 @@
 #include <map>
 #include <set>
 
-#include "block.h"
-#include "blockindex.h"
-#include "transaction.h"
-#include "points.h"
-#include "merkle_transaction.h"
+#include "chain/block.h"
+#include "chain/blockindex.h"
+#include "tx/tx.h"
+#include "tx/inpoint.h"
+#include "tx/merkletx.h"
 
 
 /// Program constants ///

@@ -8,11 +8,11 @@
 
 #include "base58.h"
 #include "bitcoinrpc.h"
-#include "txdb-leveldb.h"
+#include "tx/txdb-leveldb.h"
 #include "init.h"
 #include "main.h"
-#include "net.h"
-#include "wallet.h"
+#include "network/net.h"
+#include "wallet/wallet.h"
 
 using namespace std;
 using namespace boost;

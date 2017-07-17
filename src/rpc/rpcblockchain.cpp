@@ -5,7 +5,7 @@
 
 #include "main.h"
 #include "bitcoinrpc.h"
-#include "mempool.h"
+#include "tx/mempool.h"
 
 using namespace json_spirit;
 using namespace std;

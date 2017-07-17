@@ -1,6 +1,6 @@
 #include "utilmoneystr.h"
 #include "amount.h"
-#include "transaction.h"
+#include "tx/tx.h"
 #include "tinyformat.h"
 #include "utilstrencodings.h"
 
