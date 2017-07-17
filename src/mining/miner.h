@@ -7,7 +7,7 @@
 #define NOVACOIN_MINER_H
 
 #include "main.h"
-#include "wallet.h"
+#include "wallet/wallet.h"
 
 
 /** Check mined proof-of-stake block */

@@ -4,12 +4,12 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "txdb-leveldb.h"
+#include "tx/txdb-leveldb.h"
 #include "miner.h"
 #include "kernel.h"
 #include "crypto/scrypt.h"
 #include "global.h"
-#include "mempool.h"
+#include "tx/mempool.h"
 #include "util/utilexceptions.h"
 #include "util/util.h"
 #include "daemon.h"
@@ -693,7 +693,7 @@ void ScryptMiner(CWallet *pwallet, bool fProofOfStake)
                         if (GetTime() - nLogTime > 30 * 60)
                         {
                             nLogTime = GetTime();
-                            LogPrintf("hashmeter %3d CPUs %6.0f khash/s\n", vnThreadsRunning[THREAD_SCRYPT_MINER], dHashesPerSec/1000.0);
+                            LogPrintf("hashmeter %6.0f khash/s\n", dHashesPerSec/1000.0);
                         }
                     }
                 }
@@ -703,8 +703,6 @@ void ScryptMiner(CWallet *pwallet, bool fProofOfStake)
             if (fShutdown)
                 return;
             if (!fGenerateBitcoins)
-                return;
-            if (fLimitProcessors && vnThreadsRunning[THREAD_SCRYPT_MINER] > nLimitProcessors)
                 return;
             if (vNodes.empty())
                 break;
@@ -734,21 +732,15 @@ void static ThreadScryptMiner(void* parg)
     CWallet* pwallet = (CWallet*)parg;
     try
     {
-        vnThreadsRunning[THREAD_SCRYPT_MINER]++;
         ScryptMiner(pwallet, false);
-        vnThreadsRunning[THREAD_SCRYPT_MINER]--;
     }
     catch (std::exception& e) {
-        vnThreadsRunning[THREAD_SCRYPT_MINER]--;
         PrintException(&e, "ThreadBitcoinMiner()");
     } catch (...) {
-        vnThreadsRunning[THREAD_SCRYPT_MINER]--;
         PrintException(NULL, "ThreadBitcoinMiner()");
     }
     nHPSTimerStart = 0;
-    if (vnThreadsRunning[THREAD_SCRYPT_MINER] == 0)
-        dHashesPerSec = 0;
-    LogPrintf("ThreadBitcoinMiner exiting, %d threads remaining\n", vnThreadsRunning[THREAD_SCRYPT_MINER]);
+    LogPrintf("ThreadBitcoinMiner exiting\n");
 }
 
 
@@ -768,7 +760,7 @@ void GenerateScryptCoins(bool fGenerate, CWallet* pwallet)
             nProcessors = 1;
         if (fLimitProcessors && nProcessors > nLimitProcessors)
             nProcessors = nLimitProcessors;
-        int nAddThreads = nProcessors - vnThreadsRunning[THREAD_SCRYPT_MINER];
+        int nAddThreads = nProcessors;
         LogPrintf("Starting %d BitcoinMiner threads\n", nAddThreads);
         for (int i = 0; i < nAddThreads; i++)
         {
