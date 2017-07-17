@@ -21,11 +21,10 @@
 #endif
 
 #include "mruset.h"
-#include "network/service.h"
-#include "network/node.h"
-#include "network/protocol.h"
-#include "network/addrman.h"
-#include "transaction.h"
+#include "service.h"
+#include "node.h"
+#include "protocol.h"
+#include "addrman.h"
 
 class CRequestTracker;
 class CNode;
@@ -125,7 +124,6 @@ extern bool fClient;
 extern bool fDiscover;
 extern bool fUseUPnP;
 extern CAddress addrSeenByPeer;
-extern boost::array<int, THREAD_MAX> vnThreadsRunning;
 extern CAddrMan addrman;
 
 extern std::vector<CNode*> vNodes;

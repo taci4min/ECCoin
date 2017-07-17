@@ -9,13 +9,13 @@
 #include "network/addrman.h"
 #include "db.h"
 #include "init.h"
-#include "miner.h"
+#include "mining/miner.h"
 #include "net.h"
 #include "strlcpy.h"
-#include "txdb-leveldb.h"
+#include "tx/txdb-leveldb.h"
 #include "ui_interface.h"
 #include "util/utilexceptions.h"
-#include "random.h"
+#include "util/random.h"
 #include "daemon.h"
 #include <boost/thread.hpp>
 
@@ -1043,7 +1043,7 @@ void ThreadDNSAddressSeed2()
                     BOOST_FOREACH(CNetAddr& ip, vaddr)
                     {
                         int nOneDay = 24*3600;
-                        CAddress addr = CAddress(CService(ip, GetDefaultPort()));                        
+                        CAddress addr = CAddress(CService(ip, GetDefaultPort()));
                         addr.nTime = GetTime() - 3*nOneDay - GetRand(4*nOneDay); // use a random age between 3 and 7 days old
                         vAdd.push_back(addr);
                         found++;
@@ -1179,7 +1179,7 @@ void ThreadOpenConnections2()
         for (int64_t nLoop = 0;; nLoop++)
         {
             ProcessOneShot();
-		      std::vector<std::string> strAddrs = gArgs.GetArgs("-connect");
+              std::vector<std::string> strAddrs = gArgs.GetArgs("-connect");
             BOOST_FOREACH(string strAddr, strAddrs)
             {
                 CAddress addr;
@@ -1321,7 +1321,7 @@ void ThreadOpenAddedConnections2()
 
     if (HaveNameProxy()) {
         while(!fShutdown) {
-    			std::vector<std::string> strAddNodes = gArgs.GetArgs("-addnode");
+                std::vector<std::string> strAddNodes = gArgs.GetArgs("-addnode");
             BOOST_FOREACH(string& strAddNode, strAddNodes) {
                 CAddress addr;
                 CSemaphoreGrant grant(*semOutbound);
@@ -1336,7 +1336,7 @@ void ThreadOpenAddedConnections2()
     }
 
     vector<vector<CService> > vservAddressesToAdd(0);
-	 std::vector<std::string> strAddNodes = gArgs.GetArgs("-addnode");
+     std::vector<std::string> strAddNodes = gArgs.GetArgs("-addnode");
     BOOST_FOREACH(string& strAddNode, strAddNodes)
     {
         vector<CService> vservNode(0);
