@@ -4,7 +4,7 @@
 #include <map>
 #include "sync.h"
 #include "uint256.h"
-#include "transaction.h"
+#include "tx.h"
 
 class CTransaction;
 class CTxDB;

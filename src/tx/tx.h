@@ -2,11 +2,11 @@
 #define CTRANSACTION_H
 
 #include "serialize.h"
-#include "points.h"
 #include "disk.h"
 #include "script.h"
-#include "blockindex.h"
+#include "chain/blockindex.h"
 #include "util/utilmoneystr.h"
+#include "outpoint.h"
 
 class CTxDB;
 class CBlockIndex;

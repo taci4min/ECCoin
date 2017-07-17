@@ -1,8 +1,8 @@
-#include "transaction.h"
+#include "tx.h"
 #include "txdb-leveldb.h"
-#include "block.h"
+#include "chain/block.h"
 #include "mempool.h"
-#include "checkpoints.h"
+#include "chain/checkpoints.h"
 #include "init.h"
 #include "global.h"
 #include <vector>

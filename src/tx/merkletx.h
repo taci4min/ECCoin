@@ -2,7 +2,7 @@
 #define CMERKLETX_H
 
 #include "serialize.h"
-#include "transaction.h"
+#include "tx.h"
 
 
 /** A transaction with a merkle branch linking it to the block chain. */

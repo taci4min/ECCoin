@@ -14,16 +14,16 @@
 #include <leveldb/filter_policy.h>
 #include <memenv/memenv.h>
 
-#include "checkpoints.h"
-#include "kernel.h"
+#include "chain/checkpoints.h"
+#include "mining/kernel.h"
 #include "main.h"
 #include "crypto/scrypt.h"
 #include "txdb-leveldb.h"
 #include "init.h"
-#include "wallet.h"
+#include "wallet/wallet.h"
 #include "global.h"
 #include "batchscanner.h"
-#include "chain.h"
+#include "chain/chain.h"
 
 
 

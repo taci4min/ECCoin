@@ -1,24 +1,8 @@
-#ifndef CINPOINT_H
-#define CINPOINT_H
+#ifndef OUTPOINT_H
+#define OUTPOINT_H
 
 #include "serialize.h"
 #include "uint256.h"
-
-class CTransaction;
-
-/** An inpoint - a combination of a transaction and an index n into its vin */
-class CInPoint
-{
-public:
-    CTransaction* ptx;
-    unsigned int n;
-    CInPoint();
-    CInPoint(CTransaction* ptxIn, unsigned int nIn);
-    void SetNull();
-    bool IsNull() const;
-};
-
-
 
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
 class COutPoint
@@ -55,5 +39,4 @@ public:
     void print() const;
 };
 
-
-#endif // CINPOINT_H
+#endif // OUTPOINT_H

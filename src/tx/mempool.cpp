@@ -1,8 +1,6 @@
 #include "mempool.h"
-#include "transaction.h"
 #include "txdb-leveldb.h"
-#include "points.h"
-#include "wallet.h"
+#include "wallet/wallet.h"
 
 CTxMemPool mempool;
 

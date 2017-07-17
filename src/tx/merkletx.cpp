@@ -1,11 +1,13 @@
-#include "merkle_transaction.h"
-#include "txdb-leveldb.h"
 #include <map>
+
+#include "merkletx.h"
+#include "txdb-leveldb.h"
 #include "global.h"
-#include "net.h"
 #include "mempool.h"
 
 using namespace std;
+
+extern bool fClient;
 
 int CMerkleTx::SetMerkleBranch(const CBlock* pblock)
 {

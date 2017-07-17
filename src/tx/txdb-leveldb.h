@@ -14,8 +14,8 @@
 #include "serialize.h"
 #include "bignum.h"
 
-#include "blockindex.h"
-#include "transaction.h"
+#include "chain/blockindex.h"
+#include "tx.h"
 
 #include <leveldb/db.h>
 #include <leveldb/write_batch.h>
