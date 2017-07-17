@@ -1,8 +1,7 @@
 #include "block.h"
 #include "blockindex.h"
 #include "bignum.h"
-#include "points.h"
-#include "transaction.h"
+#include "tx/tx.h"
 
 #include <map>
 

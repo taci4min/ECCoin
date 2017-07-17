@@ -5,7 +5,7 @@
 #include <boost/assign/list_of.hpp> // for 'map_list_of()'
 #include <boost/foreach.hpp>
 
-#include "txdb-leveldb.h"
+#include "tx/txdb-leveldb.h"
 #include "global.h"
 #include "main.h"
 #include "checkpoints.h"

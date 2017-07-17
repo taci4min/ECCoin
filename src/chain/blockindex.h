@@ -2,7 +2,8 @@
 #define CBLOCKINDEX_H
 
 #include <stdio.h>
-#include "points.h"
+#include "tx/inpoint.h"
+#include "tx/outpoint.h"
 
 
 class COutPoint;
