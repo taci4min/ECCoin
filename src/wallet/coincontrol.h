@@ -1,7 +1,7 @@
 #ifndef COINCONTROL_H
 #define COINCONTROL_H
 
-#include "points.h"
+#include "tx/outpoint.h"
 
 /** Coin Control Features. */
 class CCoinControl

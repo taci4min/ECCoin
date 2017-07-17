@@ -17,7 +17,7 @@
 #include "ui_interface.h"
 #include "walletdb.h"
 #include "amount.h"
-#include "transaction.h"
+#include "tx/tx.h"
 
 
 extern bool fWalletUnlockStakingOnly;

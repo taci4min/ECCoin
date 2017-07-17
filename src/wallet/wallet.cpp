@@ -3,17 +3,17 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "txdb-leveldb.h"
+#include "tx/txdb-leveldb.h"
 #include "wallet.h"
 #include "walletdb.h"
 #include "crypter.h"
 #include "ui_interface.h"
 #include "base58.h"
-#include "kernel.h"
+#include "mining/kernel.h"
 #include "coincontrol.h"
-#include "mempool.h"
+#include "tx/mempool.h"
 #include "global.h"
-#include "random.h"
+#include "util/random.h"
 #include "daemon.h"
 #include <boost/thread.hpp>
 
