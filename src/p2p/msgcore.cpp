@@ -204,7 +204,7 @@ bool processVersion(CNode* pfrom, CDataStream& vRecv)
     if (pfrom->fNetworkNode)
     {
         AddressCurrentlyConnected(pfrom->addr);
-        nLastSend = GetTime();
+        pfrom->nLastSend = GetTime();
     }
     return true;
 }
@@ -304,7 +304,7 @@ bool processAddr(CNode* pfrom, CDataStream& vRecv)
     if (pfrom->fNetworkNode)
     {
         AddressCurrentlyConnected(pfrom->addr);
-        nLastSend = GetTime();
+        pfrom->nLastSend = GetTime();
     }
     return true;
 }
@@ -362,7 +362,7 @@ bool processInv(CNode* pfrom, CDataStream& vRecv)
     if (pfrom->fNetworkNode)
     {
         AddressCurrentlyConnected(pfrom->addr);
-        nLastSend = GetTime();
+        pfrom->nLastSend = GetTime();
     }
     return true;
 }
@@ -545,7 +545,7 @@ BOOST_FOREACH(const CInv& inv, vInv)
 if (pfrom->fNetworkNode)
 {
     AddressCurrentlyConnected(pfrom->addr);
-    nLastSend = GetTime();
+    pfrom->nLastSend = GetTime();
 }
 return true;
 }
@@ -743,7 +743,7 @@ bool processPing(CNode* pfrom, CDataStream& vRecv)
     if (pfrom->fNetworkNode)
     {
         AddressCurrentlyConnected(pfrom->addr);
-        nLastSend = GetTime();
+        pfrom->nLastSend = GetTime();
     }
     return true;
 }
