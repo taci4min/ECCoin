@@ -848,16 +848,12 @@ void ThreadMapPort()
 
     try
     {
-        vnThreadsRunning[THREAD_UPNP]++;
-        ThreadMapPort2();
-        vnThreadsRunning[THREAD_UPNP]--;
-    }
+=        ThreadMapPort2();
+=    }
     catch (std::exception& e) {
-        vnThreadsRunning[THREAD_UPNP]--;
-        PrintException(&e, "ThreadMapPort()");
+=        PrintException(&e, "ThreadMapPort()");
     } catch (...) {
-        vnThreadsRunning[THREAD_UPNP]--;
-        PrintException(NULL, "ThreadMapPort()");
+=        PrintException(NULL, "ThreadMapPort()");
     }
     LogPrintf("ThreadMapPort exited\n");
 }
@@ -973,7 +969,7 @@ void ThreadMapPort2()
 
 void MapPort()
 {
-    if (fUseUPnP && vnThreadsRunning[THREAD_UPNP] < 1)
+    if (fUseUPnP)
     {
         boost::thread* MapPort = new boost::thread(&ThreadMapPort);
         ecc_threads.add_thread(MapPort);
