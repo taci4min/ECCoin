@@ -5,7 +5,7 @@
 
 #include "chain/checkpoints.h"
 #include "init.h"
-#include "network/net.h"
+#include "p2p/net.h"
 #include "tx/txdb-leveldb.h"
 #include "uint256.h"
 #include "ui_interface.h"
@@ -18,8 +18,8 @@
 #include "util/utilexceptions.h"
 #include "util/random.h"
 
-#include "network/netutils.h"
-#include "network/proxyutils.h"
+#include "p2p/netutils.h"
+#include "p2p/proxyutils.h"
 
 #include "daemon.h"
 

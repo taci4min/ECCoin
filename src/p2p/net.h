@@ -77,7 +77,6 @@ enum
     LOCAL_IF,     // address a local interface listens on
     LOCAL_BIND,   // address explicit bound to
     LOCAL_UPNP,   // address reported by UPnP
-    LOCAL_IRC,    // address reported by IRC (deprecated)
     LOCAL_HTTP,   // address reported by whatismyip.com and similar
     LOCAL_MANUAL, // address explicitly specified (-externalip=)
 
@@ -99,25 +98,6 @@ enum
 {
     MSG_TX = 1,
     MSG_BLOCK = 2,
-};
-
-
-/** Thread types */
-enum threadId
-{
-    THREAD_SOCKETHANDLER,
-    THREAD_OPENCONNECTIONS,
-    THREAD_MESSAGEHANDLER,
-    THREAD_RPCLISTENER,
-    THREAD_UPNP,
-    THREAD_DNSSEED,
-    THREAD_ADDEDCONNECTIONS,
-    THREAD_DUMPADDRESS,
-    THREAD_RPCHANDLER,
-    THREAD_SCRYPT_MINER,
-    THREAD_MINTER, //scrypt stake mining
-
-    THREAD_MAX
 };
 
 extern bool fClient;

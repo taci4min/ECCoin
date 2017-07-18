@@ -9,7 +9,7 @@
 #include "bitcoinrpc.h"
 #include "init.h"
 #include "base58.h"
-#include "network/proxyutils.h"
+#include "p2p/proxyutils.h"
 #include <boost/thread.hpp>
 #include "daemon.h"
 

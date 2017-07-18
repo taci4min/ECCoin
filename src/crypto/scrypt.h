@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "network/net.h"
+#include "p2p/net.h"
 #include "chain/block.h"
 
 void *scrypt_buffer_alloc();

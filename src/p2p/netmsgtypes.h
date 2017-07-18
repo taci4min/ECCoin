@@ -1,29 +1,9 @@
-#ifndef MESSAGES_H
-#define MESSAGES_H
-
-#include "chain/checkpoints.h"
-#include "wallet/db.h"
-#include "init.h"
-#include "mining/kernel.h"
-#include "main.h"
-#include "network/net.h"
-#include "tx/txdb-leveldb.h"
-#include "ui_interface.h"
-#include "util/random.h"
-
-
-
-extern unsigned char pchMessageStart[4];
-
-bool AlreadyHave(CTxDB& txdb, const CInv& inv);
-bool ProcessMessages(CNode* pfrom);
-bool SendMessages(CNode* pto, bool fSendTrickle);
-void InitializeNode(CNode *pnode);
+#ifndef NETMSGTYPES_H
+#define NETMSGTYPES_H
 
 
 /**
- * Bitcoin protocol message types. When adding new message types, don't forget
- * to update allNetMessageTypes in protocol.cpp.
+ * ECC protocol message types
  */
 namespace NetMsgType {
 
@@ -56,13 +36,6 @@ extern const char *INV;
  * @see https://bitcoin.org/en/developer-reference#getdata
  */
 extern const char *GETDATA;
-/**
- * The merkleblock message is a reply to a getdata message which requested a
- * block using the inventory type MSG_MERKLEBLOCK.
- * @since protocol version 70001 as described by BIP37.
- * @see https://bitcoin.org/en/developer-reference#merkleblock
- */
-extern const char *MERKLEBLOCK;
 /**
  * The getblocks message requests an inv message that provides block header
  * hashes starting from a particular point in the block chain.
@@ -127,79 +100,12 @@ extern const char *PONG;
  */
 extern const char *NOTFOUND;
 /**
- * The filterload message tells the receiving peer to filter all relayed
- * transactions and requested merkle blocks through the provided filter.
- * @since protocol version 70001 as described by BIP37.
- *   Only available with service bit NODE_BLOOM since protocol version
- *   70011 as described by BIP111.
- * @see https://bitcoin.org/en/developer-reference#filterload
- */
-extern const char *FILTERLOAD;
-/**
- * The filteradd message tells the receiving peer to add a single element to a
- * previously-set bloom filter, such as a new public key.
- * @since protocol version 70001 as described by BIP37.
- *   Only available with service bit NODE_BLOOM since protocol version
- *   70011 as described by BIP111.
- * @see https://bitcoin.org/en/developer-reference#filteradd
- */
-extern const char *FILTERADD;
-/**
- * The filterclear message tells the receiving peer to remove a previously-set
- * bloom filter.
- * @since protocol version 70001 as described by BIP37.
- *   Only available with service bit NODE_BLOOM since protocol version
- *   70011 as described by BIP111.
- * @see https://bitcoin.org/en/developer-reference#filterclear
- */
-extern const char *FILTERCLEAR;
-/**
- * The reject message informs the receiving node that one of its previous
- * messages has been rejected.
- * @since protocol version 70002 as described by BIP61.
- * @see https://bitcoin.org/en/developer-reference#reject
- */
-extern const char *REJECT;
-/**
  * Indicates that a node prefers to receive new block announcements via a
  * "headers" message rather than an "inv".
  * @since protocol version 70012 as described by BIP130.
  * @see https://bitcoin.org/en/developer-reference#sendheaders
  */
 extern const char *SENDHEADERS;
-/**
- * The feefilter message tells the receiving peer not to inv us any txs
- * which do not meet the specified min fee rate.
- * @since protocol version 70013 as described by BIP133
- */
-extern const char *FEEFILTER;
-/**
- * Contains a 1-byte bool and 8-byte LE version number.
- * Indicates that a node is willing to provide blocks via "cmpctblock" messages.
- * May indicate that a node prefers to receive new block announcements via a
- * "cmpctblock" message rather than an "inv", depending on message contents.
- * @since protocol version 70014 as described by BIP 152
- */
-extern const char *SENDCMPCT;
-/**
- * Contains a CBlockHeaderAndShortTxIDs object - providing a header and
- * list of "short txids".
- * @since protocol version 70014 as described by BIP 152
- */
-extern const char *CMPCTBLOCK;
-/**
- * Contains a BlockTransactionsRequest
- * Peer should respond with "blocktxn" message.
- * @since protocol version 70014 as described by BIP 152
- */
-extern const char *GETBLOCKTXN;
-/**
- * Contains a BlockTransactions.
- * Sent in response to a "getblocktxn" message.
- * @since protocol version 70014 as described by BIP 152
- */
-extern const char *BLOCKTXN;
-};
+}
 
-
-#endif // MESSAGES_H
+#endif // NETMSGTYPES_H

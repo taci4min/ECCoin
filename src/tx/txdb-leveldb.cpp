@@ -346,18 +346,12 @@ bool LoadBlockIndexInternal()
     LogPrintf("total number of blocks = %d \n", TotalNumBlocks);
     ///this code reduces rescan time
 
-    unsigned int bestCheckpoint = 0;
     typedef std::map<int, uint256>::iterator it_type;
     for(it_type CheckpointIterator = mapCheckpoints.begin(); CheckpointIterator != mapCheckpoints.end(); CheckpointIterator++)
     {
-        unsigned int currentBest = CheckpointIterator->first;
         if (TotalNumBlocks - 250 <= 0)
         {
             TotalNumBlocks = 0;
-        }
-        if(currentBest < (TotalNumBlocks))
-        {
-            bestCheckpoint = currentBest;
         }
     }
     int64_t nStartMapping = GetTimeMillis();

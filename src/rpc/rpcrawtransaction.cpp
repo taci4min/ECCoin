@@ -11,7 +11,7 @@
 #include "tx/txdb-leveldb.h"
 #include "init.h"
 #include "main.h"
-#include "network/net.h"
+#include "p2p/net.h"
 #include "wallet/wallet.h"
 
 using namespace std;

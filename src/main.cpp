@@ -6,7 +6,7 @@
 #include "chain/checkpoints.h"
 #include "wallet/db.h"
 #include "tx/txdb-leveldb.h"
-#include "network/net.h"
+#include "p2p/net.h"
 #include "init.h"
 #include "ui_interface.h"
 #include "mining/kernel.h"
@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include "util/random.h"
 #include "util/utilstrencodings.h"
-#include "p2p/messages.h"
+#include "p2p/msgcore.h"
 #include "rpc/bitcoinrpc.h"
 
 using namespace std;

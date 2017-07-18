@@ -177,7 +177,6 @@ QMAKE_CXXFLAGS_WARN_ON = -fdiagnostics-show-option -Wall -Wextra -Wformat -Wform
 DEPENDPATH += src src/json
 
 HEADERS += \
-    src/network/addrman.h \
     src/allocators.h \
     src/base58.h \
     src/bignum.h \
@@ -186,7 +185,6 @@ HEADERS += \
     src/key.h \
     src/keystore.h \
     src/main.h \
-    src/network/protocol.h \
     src/script.h \
     src/serialize.h \
     src/strlcpy.h \
@@ -198,14 +196,6 @@ HEADERS += \
     src/global.h \
     src/batchscanner.h \
     src/validation.h \
-    src/network/node.h \
-    src/network/nodestats.h \
-    src/network/requests.h \
-    src/network/netaddr.h \
-    src/network/service.h \
-    src/network/netutils.h \
-    src/network/proxyutils.h \
-    src/network/socketutils.h \
     src/tinyformat.h \
     src/fs.h \
     src/util/util.h \
@@ -214,7 +204,6 @@ HEADERS += \
     src/util/utiltime.h \
     src/util/utilexceptions.h \
     src/amount.h \
-    src/network/subnet.h \
     src/noui.h \
     src/json/json_spirit.h \
     src/json/json_spirit_error_position.h \
@@ -239,7 +228,6 @@ HEADERS += \
     src/wallet/crypter.h \
     src/tx/mempool.h \
     src/tx/merkletx.h \
-    src/p2p/messages.h \
     src/chain/locator.h \
     src/wallet/walletdb.h \
     src/wallet/wallet.h \
@@ -247,41 +235,47 @@ HEADERS += \
     src/util/random.h \
     src/crypto/pbkdf2.h \
     src/mining/miner.h \
-    src/network/net.h \
     src/wallet/coincontrol.h \
-    src/network/mruset.h \
-    src/network/compat.h \
     src/tx/tx.h \
     src/tx/outpoint.h \
-    src/tx/inpoint.h
+    src/tx/inpoint.h \
+    src/p2p/msgheaders.h \
+    src/p2p/msgprocessing.h \
+    src/p2p/addrman.h \
+    src/p2p/compat.h \
+    src/p2p/mruset.h \
+    src/p2p/netaddr.h \
+    src/p2p/net.h \
+    src/p2p/netutils.h \
+    src/p2p/node.h \
+    src/p2p/nodestats.h \
+    src/p2p/protocol.h \
+    src/p2p/proxyutils.h \
+    src/p2p/requests.h \
+    src/p2p/service.h \
+    src/p2p/subnet.h \
+    src/p2p/socketutils.h \
+    src/p2p/msgcore.h \
+    src/p2p/cnodestate.h \
+    src/p2p/netmsgtypes.h
 
 
 SOURCES += \
-    src/network/node.cpp \
-    src/network/requests.cpp \
-    src/network/netaddr.cpp \
-    src/network/service.cpp \
-    src/network/netutils.cpp \
-    src/network/proxyutils.cpp \
-    src/network/socketutils.cpp \
     src/fs.cpp \
     src/util/util.cpp \
     src/util/utiltime.cpp \
     src/util/utilstrencodings.cpp \
     src/util/utilmoneystr.cpp \
     src/util/utilexceptions.cpp \
-    src/network/subnet.cpp \
     src/rpc/rpcnet.cpp \
     src/rpc/rpcwallet.cpp \
     src/daemon.cpp \
-    src/network/addrman.cpp \
     src/global.cpp \
     src/init.cpp \
     src/key.cpp \
     src/keystore.cpp \
     src/main.cpp \
     src/noui.cpp \
-    src/network/protocol.cpp \
     src/script.cpp \
     src/sync.cpp \
     src/version.cpp \
@@ -296,7 +290,6 @@ SOURCES += \
     src/chain/blockindex.cpp \
     src/chain/chain.cpp \
     src/chain/checkpoints.cpp \
-    src/p2p/messages.cpp \
     src/tx/txdb-leveldb.cpp \
     src/tx/mempool.cpp \
     src/chain/locator.cpp \
@@ -311,9 +304,24 @@ SOURCES += \
     src/wallet/db.cpp \
     src/crypto/pbkdf2.cpp \
     src/wallet/crypter.cpp \
-    src/network/net.cpp \
     src/tx/outpoint.cpp \
-    src/tx/inpoint.cpp
+    src/tx/inpoint.cpp \
+    src/p2p/msgcore.cpp \
+    src/p2p/msgheaders.cpp \
+    src/p2p/addrman.cpp \
+    src/p2p/net.cpp \
+    src/p2p/netaddr.cpp \
+    src/p2p/netutils.cpp \
+    src/p2p/node.cpp \
+    src/p2p/subnet.cpp \
+    src/p2p/socketutils.cpp \
+    src/p2p/service.cpp \
+    src/p2p/requests.cpp \
+    src/p2p/proxyutils.cpp \
+    src/p2p/protocol.cpp \
+    src/p2p/msgprocessing.cpp \
+    src/p2p/cnodestate.cpp \
+    src/p2p/netmsgtypes.cpp
 
 
 CODECFORTR = UTF-8

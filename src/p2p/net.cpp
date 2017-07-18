@@ -3,10 +3,10 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "network/netutils.h"
-#include "network/socketutils.h"
-#include "network/proxyutils.h"
-#include "network/addrman.h"
+#include "netutils.h"
+#include "socketutils.h"
+#include "proxyutils.h"
+#include "addrman.h"
 #include "db.h"
 #include "init.h"
 #include "mining/miner.h"
@@ -17,6 +17,9 @@
 #include "util/utilexceptions.h"
 #include "util/random.h"
 #include "daemon.h"
+#include "msgcore.h"
+#include "msgprocessing.h"
+#include "cnodestate.h"
 #include <boost/thread.hpp>
 
 #ifdef WIN32
@@ -35,11 +38,20 @@ using namespace boost;
 
 static const int MAX_OUTBOUND_CONNECTIONS = 1000;
 
-extern unsigned char pchMessageStart[4];
-extern bool AlreadyHave(CTxDB& txdb, const CInv& inv);
-extern bool ProcessMessages(CNode* pfrom);
-extern bool SendMessages(CNode* pto, bool fSendTrickle);
-extern void InitializeNode(CNode *pnode);
+void InitializeNode(CNode *pnode)
+{
+    CAddress addr = pnode->addr;
+    std::string addrName = pnode->addrName;
+    NodeId nodeid = pnode->GetId();
+    {
+        LOCK(cs_main);
+        mapNodeState.emplace_hint(mapNodeState.end(), std::piecewise_construct, std::forward_as_tuple(nodeid), std::forward_as_tuple(addr, std::move(addrName)));
+    }
+    if(!pnode->fInbound)
+    {
+        PushNodeVersion(pnode, GetTime());
+    }
+}
 
 void ThreadMessageHandler2();
 void ThreadSocketHandler2();
@@ -65,7 +77,6 @@ static bool vfReachable[NET_MAX] = {};
 static bool vfLimited[NET_MAX] = {};
 static CNode* pnodeLocalHost = NULL;
 CAddress addrSeenByPeer(CService("0.0.0.0", 0), nLocalServices);
-boost::array<int, THREAD_MAX> vnThreadsRunning;
 static std::vector<SOCKET> vhListenSocket;
 CAddrMan addrman;
 
@@ -493,15 +504,11 @@ void ThreadSocketHandler()
 
     try
     {
-        vnThreadsRunning[THREAD_SOCKETHANDLER]++;
         ThreadSocketHandler2();
-        vnThreadsRunning[THREAD_SOCKETHANDLER]--;
     }
     catch (std::exception& e) {
-        vnThreadsRunning[THREAD_SOCKETHANDLER]--;
         PrintException(&e, "ThreadSocketHandler()");
     } catch (...) {
-        vnThreadsRunning[THREAD_SOCKETHANDLER]--;
         throw; // support pthread_cancel()
     }
     LogPrintf("ThreadSocketHandler exited\n");
@@ -617,10 +624,8 @@ void ThreadSocketHandler2()
             }
         }
 
-        vnThreadsRunning[THREAD_SOCKETHANDLER]--;
         int nSelect = select(have_fds ? hSocketMax + 1 : 0,
                              &fdsetRecv, &fdsetSend, &fdsetError, &timeout);
-        vnThreadsRunning[THREAD_SOCKETHANDLER]++;
         if (fShutdown)
             return;
         if (nSelect == SOCKET_ERROR)
@@ -1006,15 +1011,11 @@ void ThreadDNSAddressSeed()
 
     try
     {
-        vnThreadsRunning[THREAD_DNSSEED]++;
         ThreadDNSAddressSeed2();
-        vnThreadsRunning[THREAD_DNSSEED]--;
     }
     catch (std::exception& e) {
-        vnThreadsRunning[THREAD_DNSSEED]--;
         PrintException(&e, "ThreadDNSAddressSeed()");
     } catch (...) {
-        vnThreadsRunning[THREAD_DNSSEED]--;
         throw; // support pthread_cancel()
     }
     LogPrintf("ThreadDNSAddressSeed exited\n");
@@ -1084,15 +1085,11 @@ void DumpAddresses()
 
 void ThreadDumpAddress2()
 {
-    vnThreadsRunning[THREAD_DUMPADDRESS]++;
     while (!fShutdown)
     {
         DumpAddresses();
-        vnThreadsRunning[THREAD_DUMPADDRESS]--;
         MilliSleep(600000);
-        vnThreadsRunning[THREAD_DUMPADDRESS]++;
     }
-    vnThreadsRunning[THREAD_DUMPADDRESS]--;
 }
 
 void ThreadDumpAddress()
@@ -1117,15 +1114,11 @@ void ThreadOpenConnections()
 
     try
     {
-        vnThreadsRunning[THREAD_OPENCONNECTIONS]++;
         ThreadOpenConnections2();
-        vnThreadsRunning[THREAD_OPENCONNECTIONS]--;
     }
     catch (std::exception& e) {
-        vnThreadsRunning[THREAD_OPENCONNECTIONS]--;
         PrintException(&e, "ThreadOpenConnections()");
     } catch (...) {
-        vnThreadsRunning[THREAD_OPENCONNECTIONS]--;
         PrintException(NULL, "ThreadOpenConnections()");
     }
     LogPrintf("ThreadOpenConnections exited\n");
@@ -1155,18 +1148,14 @@ void static ThreadStakeMinter_Scrypt(void* parg)
     CWallet* pwallet = (CWallet*)parg;
     try
     {
-        vnThreadsRunning[THREAD_MINTER]++;
         ScryptMiner(pwallet, true);
-        vnThreadsRunning[THREAD_MINTER]--;
     }
     catch (std::exception& e) {
-        vnThreadsRunning[THREAD_MINTER]--;
         PrintException(&e, "ThreadStakeMinter()");
     } catch (...) {
-        vnThreadsRunning[THREAD_MINTER]--;
         PrintException(NULL, "ThreadStakeMinter()");
     }
-    LogPrintf("ThreadStakeMinter exiting, %d threads remaining\n", vnThreadsRunning[THREAD_MINTER]);
+    LogPrintf("ThreadStakeMinter exiting");
 }
 
 void ThreadOpenConnections2()
@@ -1201,16 +1190,12 @@ void ThreadOpenConnections2()
     {
         ProcessOneShot();
 
-        vnThreadsRunning[THREAD_OPENCONNECTIONS]--;
         MilliSleep(1000);
-        vnThreadsRunning[THREAD_OPENCONNECTIONS]++;
         if (fShutdown)
             return;
 
 
-        vnThreadsRunning[THREAD_OPENCONNECTIONS]--;
         CSemaphoreGrant grant(*semOutbound);
-        vnThreadsRunning[THREAD_OPENCONNECTIONS]++;
         if (fShutdown)
             return;
 
@@ -1298,15 +1283,11 @@ void ThreadOpenAddedConnections()
 
     try
     {
-        vnThreadsRunning[THREAD_ADDEDCONNECTIONS]++;
         ThreadOpenAddedConnections2();
-        vnThreadsRunning[THREAD_ADDEDCONNECTIONS]--;
     }
     catch (std::exception& e) {
-        vnThreadsRunning[THREAD_ADDEDCONNECTIONS]--;
         PrintException(&e, "ThreadOpenAddedConnections()");
     } catch (...) {
-        vnThreadsRunning[THREAD_ADDEDCONNECTIONS]--;
         PrintException(NULL, "ThreadOpenAddedConnections()");
     }
     LogPrintf("ThreadOpenAddedConnections exited\n");
@@ -1328,9 +1309,7 @@ void ThreadOpenAddedConnections2()
                 OpenNetworkConnection(addr, &grant, strAddNode.c_str());
                 MilliSleep(500);
             }
-            vnThreadsRunning[THREAD_ADDEDCONNECTIONS]--;
             MilliSleep(120000); // Retry every 2 minutes
-            vnThreadsRunning[THREAD_ADDEDCONNECTIONS]++;
         }
         return;
     }
@@ -1377,9 +1356,7 @@ void ThreadOpenAddedConnections2()
         }
         if (fShutdown)
             return;
-        vnThreadsRunning[THREAD_ADDEDCONNECTIONS]--;
         MilliSleep(120000); // Retry every 2 minutes
-        vnThreadsRunning[THREAD_ADDEDCONNECTIONS]++;
         if (fShutdown)
             return;
     }
@@ -1401,9 +1378,7 @@ bool OpenNetworkConnection(const CAddress& addrConnect, CSemaphoreGrant *grantOu
     if (strDest && FindNode(strDest))
         return false;
 
-    vnThreadsRunning[THREAD_OPENCONNECTIONS]--;
     CNode* pnode = ConnectNode(addrConnect, strDest);
-    vnThreadsRunning[THREAD_OPENCONNECTIONS]++;
     if (fShutdown)
         return false;
     if (!pnode)
@@ -1431,15 +1406,11 @@ void ThreadMessageHandler()
     RenameThread("ECCoin-msghand");
     try
     {
-        vnThreadsRunning[THREAD_MESSAGEHANDLER]++;
         ThreadMessageHandler2();
-        vnThreadsRunning[THREAD_MESSAGEHANDLER]--;
     }
     catch (std::exception& e) {
-        vnThreadsRunning[THREAD_MESSAGEHANDLER]--;
         PrintException(&e, "ThreadMessageHandler()");
     } catch (...) {
-        vnThreadsRunning[THREAD_MESSAGEHANDLER]--;
         PrintException(NULL, "ThreadMessageHandler()");
     }
     LogPrintf("ThreadMessageHandler exited\n");
@@ -1496,11 +1467,9 @@ void ThreadMessageHandler2()
         // Wait and allow messages to bunch up.
         // Reduce vnThreadsRunning so StopNode has permission to exit while
         // we're sleeping, but we must always check fShutdown after doing this.
-        vnThreadsRunning[THREAD_MESSAGEHANDLER]--;
         MilliSleep(250);
         if (fRequestShutdown)
             StartShutdown();
-        vnThreadsRunning[THREAD_MESSAGEHANDLER]++;
         if (fShutdown)
             return;
     }
@@ -1757,7 +1726,6 @@ bool StopNode()
     LogPrintf("StopNode()\n");
     fShutdown = true;
     nTransactionsUpdated++;
-    int64_t nStart = GetTime();
     if (semOutbound)
     {
         for (int i=0; i<MAX_OUTBOUND_CONNECTIONS; i++)
@@ -1765,31 +1733,7 @@ bool StopNode()
             semOutbound->post();
         }
     }
-    do
-    {
-        int nThreadsRunning = 0;
-        for (int n = 0; n < THREAD_MAX; n++)
-            nThreadsRunning += vnThreadsRunning[n];
-        if (nThreadsRunning == 0)
-            break;
-        if (GetTime() - nStart > 20)
-            break;
-        MilliSleep(100);
-    } while(true);
-    if (vnThreadsRunning[THREAD_SOCKETHANDLER] > 0) LogPrintf("ThreadSocketHandler still running\n");
-    if (vnThreadsRunning[THREAD_OPENCONNECTIONS] > 0) LogPrintf("ThreadOpenConnections still running\n");
-    if (vnThreadsRunning[THREAD_MESSAGEHANDLER] > 0) LogPrintf("ThreadMessageHandler still running\n");
-    if (vnThreadsRunning[THREAD_RPCLISTENER] > 0) LogPrintf("ThreadRPCListener still running\n");
-    if (vnThreadsRunning[THREAD_RPCHANDLER] > 0) LogPrintf("ThreadsRPCServer still running\n");
-#ifdef USE_UPNP
-    if (vnThreadsRunning[THREAD_UPNP] > 0) LogPrintf("ThreadMapPort still running\n");
-#endif
-    if (vnThreadsRunning[THREAD_DNSSEED] > 0) LogPrintf("ThreadDNSAddressSeed still running\n");
-    if (vnThreadsRunning[THREAD_ADDEDCONNECTIONS] > 0) LogPrintf("ThreadOpenAddedConnections still running\n");
-    if (vnThreadsRunning[THREAD_DUMPADDRESS] > 0) LogPrintf("ThreadDumpAddresses still running\n");
-    if (vnThreadsRunning[THREAD_MINTER] > 0) LogPrintf("ThreadStakeMinter_Scrypt still running\n");
-    while (vnThreadsRunning[THREAD_MESSAGEHANDLER] > 0 || vnThreadsRunning[THREAD_RPCHANDLER] > 0)
-        MilliSleep(20);
+    ecc_threads.join_all();
     MilliSleep(500);
     DumpAddresses();
     return true;

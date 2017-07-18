@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <string>
-#include "network/netaddr.h"
+#include "p2p/netaddr.h"
 
 /**
  * GetTimeMicros() and GetTimeMillis() both return the system time, but in

@@ -7,7 +7,7 @@
 #include "main.h"
 #include "kernel.h"
 #include "tx/txdb-leveldb.h"
-#include "network/net.h"
+#include "p2p/net.h"
 #include "script.h"
 #include "crypto/scrypt.h"
 #include "global.h"

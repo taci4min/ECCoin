@@ -11,7 +11,7 @@
 #include "utilstrencodings.h"
 #include "utiltime.h"
 #include "threadsafety.h"
-#include "network/compat.h"
+#include "p2p/compat.h"
 
 #if (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__DragonFly__))
 #include <pthread.h>

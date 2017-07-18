@@ -7,7 +7,7 @@
 
 #include "bignum.h"
 #include "sync.h"
-#include "network/net.h"
+#include "p2p/net.h"
 #include "script.h"
 #include "crypto/scrypt.h"
 #include "global.h"
@@ -24,7 +24,7 @@ using namespace boost;
 
 int64_t getMinFee(int64_t nTime);
 #ifndef MIN_TX_FEE
-#define MIN_TX_FEE getMinFee
+#define MIN_TX_FEE(nTime) getMinFee(nTime)
 #endif
 static const int64_t COIN_YEAR_REWARD = 10 * CENT; // 10% per year
 static const int64_t MAX_MINT_PROOF_OF_STAKE = 0.1 * COIN;

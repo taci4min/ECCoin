@@ -1,7 +1,7 @@
 #include "random.h"
 
 #ifdef WIN32
-#include "network/compat.h" // for Windows API
+#include "p2p/compat.h" // for Windows API
 #include <wincrypt.h>
 #endif
 #include "util/util.h"

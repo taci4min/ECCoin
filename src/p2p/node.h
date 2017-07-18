@@ -334,7 +334,6 @@ public:
 
         nHeaderStart = -1;
         nMessageStart = -1;
-        nLastSend = GetTime();
     }
 
     void PushVersion();

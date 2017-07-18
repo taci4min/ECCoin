@@ -185,7 +185,8 @@ Value getdifficulty(const Array& params, bool fHelp)
 
 Value settxfee(const Array& params, bool fHelp)
 {
-    if (fHelp || params.size() < 1 || params.size() > 1 || AmountFromValue(params[0]) < MIN_TX_FEE)
+    int64_t minfee = MIN_TX_FEE(GetTime());
+    if (fHelp || params.size() < 1 || params.size() > 1 || AmountFromValue(params[0]) < minfee)
         throw runtime_error(
             "settxfee <amount>\n"
             "<amount> is a real and is rounded to the nearest 0.01");
