@@ -13,6 +13,7 @@
 #include <thread>
 
 #ifndef WIN32
+#include <fcntl.h>
 #include <sys/time.h>
 #endif
 

@@ -108,49 +108,47 @@ xLDFLAGS=$(LDHARDENING) $(LDFLAGS)
 
 OBJS= \
     build/version.o \
-    build/checkpoints.o \
-    build/network/netaddr.o \
-    build/network/addrman.o \
-    build/crypter.o \
+    build/chain/checkpoints.o \
+    build/p2p/netaddr.o \
+    build/p2p/addrman.o \
+    build/wallet/crypter.o \
     build/key.o \
-    build/db.o \
+    build/wallet/db.o \
     build/init.o \
     build/keystore.o \
-    build/miner.o \
+    build/mining/miner.o \
     build/main.o \
-    build/net.o \
-    build/network/protocol.o \
+    build/p2p/net.o \
+    build/p2p/protocol.o \
     build/script.o \
     build/sync.o \
     build/util/util.o \
-    build/wallet.o \
-    build/walletdb.o \
+    build/wallet/wallet.o \
+    build/wallet/walletdb.o \
     build/noui.o \
-    build/kernel.o \
-    build/pbkdf2.o \
-    build/messages.o \
-    build/block.o \
+    build/mining/kernel.o \
+    build/crypto/pbkdf2.o \
+    build/chain/block.o \
     build/global.o \
-    build/points.o \
-    build/chain.o \
-    build/blockindex.o \
+    build/chain/chain.o \
+    build/chain/blockindex.o \
     build/crypto/hash.o \
-    build/locator.o \
-    build/transaction.o \
-    build/merkle_transaction.o \
-    build/mempool.o \
+    build/chain/locator.o \
+    build/tx/tx.o \
+    build/tx/merkletx.o \
+    build/tx/mempool.o \
     build/crypto/scrypt.o \
-    build/network/netutils.o \
-    build/network/node.o \
-    build/network/proxyutils.o \
-    build/network/requests.o \
-    build/network/service.o \
-    build/network/socketutils.o \
+    build/p2p/netutils.o \
+    build/p2p/node.o \
+    build/p2p/proxyutils.o \
+    build/p2p/requests.o \
+    build/p2p/service.o \
+    build/p2p/socketutils.o \
     build/util/utilexceptions.o \
     build/util/utilmoneystr.o \
     build/util/utilstrencodings.o \
     build/util/utiltime.o \
-    build/random.o \
+    build/util/random.o \
     build/rpc/bitcoinrpc.o \
     build/rpc/rpcblockchain.o \
     build/rpc/rpcdump.o \
@@ -158,8 +156,14 @@ OBJS= \
     build/rpc/rpcnet.o \
     build/rpc/rpcrawtransaction.o \
     build/rpc/rpcwallet.o \
-    build/network/subnet.o \
-    build/disk.o \
+    build/p2p/subnet.o \
+    build/tx/disk.o \
+    build/tx/inpoint.o \
+    build/tx/outpoint.o \
+    build/p2p/cnodestate.o \
+    build/p2p/msgcore.o \
+    build/p2p/msgheaders.o \
+    build/p2p/netmsgtypes.o \
     build/fs.o \
     build/daemon.o
 
@@ -168,7 +172,7 @@ all: ECCoind
 LIBS += $(CURDIR)/leveldb/libleveldb.a $(CURDIR)/leveldb/libmemenv.a
 DEFS += $(addprefix -I,$(CURDIR)/leveldb/include)
 DEFS += $(addprefix -I,$(CURDIR)/leveldb/helpers)
-OBJS += build/txdb-leveldb.o
+OBJS += build/tx/txdb-leveldb.o
 leveldb/libleveldb.a:
 	@echo "Building LevelDB ..."; cd leveldb; make libleveldb.a libmemenv.a; cd ..;
 build/txdb-leveldb.o: leveldb/libleveldb.a
