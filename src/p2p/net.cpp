@@ -848,12 +848,12 @@ void ThreadMapPort()
 
     try
     {
-=        ThreadMapPort2();
-=    }
+        ThreadMapPort2();
+    }
     catch (std::exception& e) {
-=        PrintException(&e, "ThreadMapPort()");
+        PrintException(&e, "ThreadMapPort()");
     } catch (...) {
-=        PrintException(NULL, "ThreadMapPort()");
+        PrintException(NULL, "ThreadMapPort()");
     }
     LogPrintf("ThreadMapPort exited\n");
 }
