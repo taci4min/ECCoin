@@ -257,7 +257,9 @@ HEADERS += \
     src/p2p/socketutils.h \
     src/p2p/msgcore.h \
     src/p2p/cnodestate.h \
-    src/p2p/netmsgtypes.h
+    src/p2p/netmsgtypes.h \
+    src/shutdown.h \
+    src/threads.h
 
 
 SOURCES += \
@@ -321,7 +323,9 @@ SOURCES += \
     src/p2p/protocol.cpp \
     src/p2p/msgprocessing.cpp \
     src/p2p/cnodestate.cpp \
-    src/p2p/netmsgtypes.cpp
+    src/p2p/netmsgtypes.cpp \
+    src/shutdown.cpp \
+    src/threads.cpp
 
 
 CODECFORTR = UTF-8
@@ -417,4 +421,6 @@ contains(RELEASE, 1) {
 }
 
 system($$QMAKE_LRELEASE -silent $$_PRO_FILE_)
+
+DISTFILES +=
 

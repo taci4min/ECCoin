@@ -49,7 +49,6 @@ extern int64_t nBestTimeReceived;
 extern int64_t nChainStartTime;
 extern uint256 nBestChainTrust;
 extern uint256 nBestInvalidTrust;
-extern int nBestCheckpointHeight;
 
 
 #endif // TYPEDEF_H

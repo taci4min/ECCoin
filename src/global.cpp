@@ -41,5 +41,3 @@ int64_t nChainStartTime = 1393744287;
 
 uint256 nBestChainTrust = 0;
 uint256 nBestInvalidTrust = 0;
-
-int nBestCheckpointHeight = 0;

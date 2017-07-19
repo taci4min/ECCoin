@@ -90,9 +90,6 @@ inline int64_t roundint64(double d)
     return (int64_t)(d > 0 ? d + 0.5 : d - 0.5);
 }
 
-void SetupEnvironment();
-bool SetupNetworking();
-
 struct CLogCategoryActive
 {
     std::string category;

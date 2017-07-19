@@ -53,11 +53,8 @@ bool fConfChange;
 bool fEnforceCanonical;
 unsigned int nNodeLifespan;
 unsigned int nDerivationMethodIndex;
-unsigned int nMinerSleep;
 bool fUseFastIndex;
 boost::condition_variable cvBlockChange;
-
-using namespace std;
 
 bool static InitWarning(const std::string &str)
 {
@@ -72,6 +69,8 @@ bool InitError(const std::string& str)
     return false;
 }
 
+
+
 void HandleSIGTERM(int)
 {
     fRequestShutdown = true;
@@ -81,6 +80,8 @@ void HandleSIGHUP(int)
 {
     fReopenDebugLog = true;
 }
+
+boost::thread_group ecc_threads;
 
 
 bool AppInitBasicSetup()
@@ -109,8 +110,13 @@ bool AppInitBasicSetup()
     if (setProcDEPPol != NULL) setProcDEPPol(PROCESS_DEP_ENABLE);
 #endif
 
-    if (!SetupNetworking())
+#ifdef WIN32
+    // Initialize Windows Sockets
+    WSADATA wsadata;
+    int ret = WSAStartup(MAKEWORD(2,2), &wsadata);
+    if (ret != NO_ERROR || LOBYTE(wsadata.wVersion ) != 2 || HIBYTE(wsadata.wVersion) != 2)
         return InitError("Initializing networking failed");
+#endif
 
 #ifndef WIN32
     umask(077);
@@ -140,7 +146,6 @@ bool InitParameterInteraction()
     pcheckpointMain = new Checkpoints();
     nNodeLifespan = GetArg("-addrlifespan", 7);
     fUseFastIndex = GetBoolArg("-fastindex", true);
-    nMinerSleep = GetArg("-minersleep", 500);
 
     nDerivationMethodIndex = 0;
 
@@ -151,7 +156,7 @@ bool InitParameterInteraction()
             LogPrintf("%s: parameter interaction: -bind set -> setting -listen=1\n", __func__);
     }
 
-    if (gArgs.IsArgSet("-connect")) {
+    if (IsArgSet("-connect")) {
         // when only connecting to trusted nodes, do not seed via DNS, or listen by default
         if (SoftSetBoolArg("-dnsseed", false))
             LogPrintf("%s: parameter interaction: -connect set -> setting -dnsseed=0\n", __func__);
@@ -182,7 +187,6 @@ bool InitParameterInteraction()
             LogPrintf("%s: parameter interaction: -listen=0 -> setting -listenonion=0\n", __func__);
     }
 
-
     if (IsArgSet("-externalip")) {
         // if an explicit public IP is specified, do not try to find others
         if (SoftSetBoolArg("-discover", false))
@@ -191,13 +195,14 @@ bool InitParameterInteraction()
 
     // ********************************************************* Step 3: parameter-to-internal-flags
 
-    fDebug = GetBoolArg("-debug", false);
-
-    // -debug implies fDebug*
-    if (fDebug)
+    if(GetBoolArg("-debug", false))
+    {
         fDebugNet = true;
+    }
     else
+    {
         fDebugNet = GetBoolArg("-debugnet", false);
+    }
 
     bitdb.SetDetach(GetBoolArg("-detachdb", false));
 
@@ -222,19 +227,6 @@ bool InitParameterInteraction()
     return true;
 }
 
-void InitLogging()
-{
-    fPrintToConsole = GetBoolArg("-printtoconsole", false);
-    fLogTimestamps = GetBoolArg("-logtimestamps", DEFAULT_LOGTIMESTAMPS);
-    fLogTimeMicros = GetBoolArg("-logtimemicros", DEFAULT_LOGTIMEMICROS);
-    fLogIPs = GetBoolArg("-logips", DEFAULT_LOGIPS);
-
-    LogPrintf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-    LogPrintf("E-CurrencyCoin version %s\n", FormatFullVersion());
-}
-
-
-
 std::string LicenseInfo()
 {
     const std::string URL_SOURCE_CODE = "<https://github.com/greg-griffith/eccoin>";
@@ -254,69 +246,6 @@ std::string LicenseInfo()
            "\n" +
            strprintf(_("This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit %s and cryptographic software written by Eric Young and UPnP software written by Thomas Bernard."), "<https://www.openssl.org>") +
            "\n";
-}
-
-
-
-
-
-
-//////////////////////////////////////////////////////////////////////////////
-//
-// Shutdown
-//
-
-void ExitTimeout()
-{
-#ifdef WIN32
-    MilliSleep(5000);
-    ExitProcess(0);
-#endif
-}
-
-void StartShutdown()
-{
-    // Without UI, Shutdown() can simply be started in a new thread
-    boost::thread* shutdown = new boost::thread(&Shutdown);
-    ecc_threads.add_thread(shutdown);
-}
-
-void Shutdown()
-{
-    static CCriticalSection cs_Shutdown;
-    static bool fTaken;
-
-    // Make this thread recognisable as the shutdown thread
-    RenameThread("ECCoin-shutoff");
-
-    bool fFirstThread = false;
-    {
-        TRY_LOCK(cs_Shutdown, lockShutdown);
-        if (lockShutdown)
-        {
-            fFirstThread = !fTaken;
-            fTaken = true;
-        }
-    }
-    if (fFirstThread)
-    {
-        fShutdown = true;
-        nTransactionsUpdated++;
-        CTxDB().Close();
-        CHeaderChainDB().Close();
-        bitdb.Flush(false);
-        StopNode();
-        bitdb.Flush(true);
-        boost::filesystem::remove(GetPidFile());
-        UnregisterWallet(pwalletMain);
-        delete pwalletMain;
-        boost::thread* exitTimeout = new boost::thread(&ExitTimeout);
-        ecc_threads.add_thread(exitTimeout);
-        MilliSleep(50);
-        LogPrintf("ECCoin exited\n\n");
-        // ensure non-UI client gets exited here, but let ECCoin-Qt reach 'return 0;' in bitcoin.cpp
-        exit(0);
-    }
 }
 
 
@@ -425,20 +354,15 @@ std::string HelpMessage()
     return strUsage;
 }
 
-/** Initialize eccoin.
- *  @pre Parameters should be parsed and config file should be read.
- */
 bool AppInit2()
 {
     // ********************************************************* Step 4: application initialization: dir lock, daemonize, pidfile, debug log
 
     std::string strDataDir = GetDataDir().string();
     std::string strWalletFileName = GetArg("-wallet", "wallet.dat");
-
     // strWalletFileName must be a plain filename without a directory
     if (strWalletFileName != boost::filesystem::basename(strWalletFileName) + boost::filesystem::extension(strWalletFileName))
         return InitError(strprintf(_("Wallet %s resides outside data directory %s."), strWalletFileName.c_str(), strDataDir.c_str()));
-
     // Make sure only a single E-CurrencyCoin process is using the data directory.
     boost::filesystem::path pathLockFile = GetDataDir() / ".lock";
     FILE* file = fopen(pathLockFile.string().c_str(), "a"); // empty lock file; created if it doesn't exist.
@@ -446,7 +370,6 @@ bool AppInit2()
     static boost::interprocess::file_lock lock(pathLockFile.string().c_str());
     if (!lock.try_lock())
         return InitError(strprintf(_("Cannot obtain a lock on data directory %s. This Coin is probably already running."), strDataDir.c_str()));
-
 #if !defined(WIN32)
     if (fDaemon)
     {
@@ -468,12 +391,9 @@ bool AppInit2()
             fprintf(stderr, "Error: setsid() returned %d errno %d\n", sid, errno);
     }
 #endif
-    if (GetBoolArg("-shrinkdebugfile", !fDebug))
-        ShrinkDebugFile();
-
+    ShrinkDebugFile();
     if (fPrintToDebugLog)
         OpenDebugLog();
-
     LogPrintf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
     LogPrintf("ECCoin version %s (%s)\n", FormatFullVersion().c_str(), CLIENT_DATE.c_str());
     LogPrintf("Using OpenSSL version %s\n", SSLeay_version(SSLEAY_VERSION));
@@ -481,12 +401,9 @@ bool AppInit2()
         LogPrintf("Startup time: %s\n", DateTimeStrFormat("%x %H:%M:%S", GetTime()).c_str());
     LogPrintf("Default data directory %s\n", GetDefaultDataDir().string().c_str());
     LogPrintf("Used data directory %s\n", strDataDir.c_str());
-
     std::ostringstream strErrors;
-
     if (fDaemon)
         fprintf(stdout, "ECCoin server starting\n");
-
     int64_t nStart;
 
     // ********************************************************* Step 5: verify database integrity
@@ -498,14 +415,12 @@ bool AppInit2()
                                  " everything fseedsat."), strDataDir.c_str());
         return InitError(msg);
     }
-
     if (GetBoolArg("-salvagewallet", false))
     {
         // Recover readable keypairs:
         if (!CWalletDB::Recover(bitdb, strWalletFileName, true))
             return false;
     }
-
     if (filesystem::exists(GetDataDir() / strWalletFileName))
     {
         CDBEnv::VerifyResult r = bitdb.Verify(strWalletFileName, CWalletDB::Recover);
@@ -524,10 +439,8 @@ bool AppInit2()
     // ********************************************************* Step 6: network initialization
 
     int nSocksVersion = GetArg("-socks", 5);
-
     if (nSocksVersion != 4 && nSocksVersion != 5)
         return InitError(strprintf(_("Unknown -socks proxy version requested: %i"), nSocksVersion));
-
     if (IsArgSet("-onlynet")) {
         std::set<enum Network> nets;
         BOOST_FOREACH(std::string snet, gArgs.GetArgs("-onlynet")) {
@@ -548,7 +461,6 @@ bool AppInit2()
         SetLimited(NET_IPV6);
 #endif
 #endif
-
     CService addrProxy;
     bool fProxy = false;
     if (IsArgSet("-proxy")) {
@@ -567,8 +479,6 @@ bool AppInit2()
         }
         fProxy = true;
     }
-
-
     // -tor can override normal proxy, -notor disables tor entirely
     if (!(IsArgSet("-tor") && GetArg("-tor", "") == "0") && (fProxy || IsArgSet("-tor"))) {
         CService addrOnion;
@@ -581,7 +491,6 @@ bool AppInit2()
         SetProxy(NET_TOR, addrOnion, 5);
         SetReachable(NET_TOR);
    }
-
     // see Step 2: parameter interactions for more information about these
     fNoListen = !GetBoolArg("-listen", true);
     fDiscover = GetBoolArg("-discover", true);
@@ -614,7 +523,6 @@ bool AppInit2()
         if (!fBound)
             return InitError(_("Failed to listen on any port. Use -listen=0 if you want this."));
     }
-
     if (IsArgSet("-externalip"))
     {
 		  std::vector<std::string> externals = gArgs.GetArgs("-externalip");
@@ -625,13 +533,12 @@ bool AppInit2()
             AddLocal(CService(strAddr, GetListenPort(), fNameLookup), LOCAL_MANUAL);
         }
     }
-
-	 if(IsArgSet("-seednode"))
-	 {
-	 	std::vector<std::string> seeds = gArgs.GetArgs("-seednode");
+    if(IsArgSet("-seednode"))
+    {
+        std::vector<std::string> seeds = gArgs.GetArgs("-seednode");
     	BOOST_FOREACH(string strDest, seeds)
         	AddOneShot(strDest);
-	 }
+    }
 
     // ********************************************************* Step 7: load blockchain
 
@@ -642,58 +549,11 @@ bool AppInit2()
                                  " everything from it except for wallet.dat."), strDataDir.c_str());
         return InitError(msg);
     }
-
-    if (GetBoolArg("-loadblockindextest", false))
-    {
-        LoadBlockIndexInternal();
-        PrintBlockTree();
-        return false;
-    }
-
     LogPrintf("Loading block index...\n");
     nStart = GetTimeMillis();
     if (!LoadBlockIndex())
         return InitError(_("Error loading blkindex.dat"));
-
-
-    // as LoadBlockIndex can take several minutes, it's possible the user
-    // requested to kill eccoin-qt during the last operation. If so, exit.
-    // As the program has not fully started yet, Shutdown() is possibly overkill.
-    if (fRequestShutdown)
-    {
-        LogPrintf("Shutdown requested. Exiting.\n");
-        return false;
-    }
     LogPrintf(" block index %d ms\n", GetTimeMillis() - nStart);
-
-    if (GetBoolArg("-printblockindex", false) || GetBoolArg("-printblocktree", false))
-    {
-        PrintBlockTree();
-        return false;
-    }
-
-    if (IsArgSet("-printblock"))
-    {
-        string strMatch = GetArg("-printblock", "0");
-        int nFound = 0;
-        for (map<uint256, CBlockIndex*>::iterator mi = mapBlockIndex.begin(); mi != mapBlockIndex.end(); ++mi)
-        {
-            uint256 hash = (*mi).first;
-            if (strncmp(hash.ToString().c_str(), strMatch.c_str(), strMatch.size()) == 0)
-            {
-                CBlockIndex* pindex = (*mi).second;
-                CBlock block;
-                block.ReadFromDisk(pindex);
-                block.BuildMerkleTree();
-                block.print();
-                LogPrintf("\n");
-                nFound++;
-            }
-        }
-        if (nFound == 0)
-            LogPrintf("No blocks matching %s were found\n", strMatch.c_str());
-        return false;
-    }
 
     // ********************************************************* Step 8: load wallet
 
@@ -727,7 +587,6 @@ bool AppInit2()
         if (!strErrors.str().empty())
             return InitError(strErrors.str());
     }
-
     if (GetBoolArg("-upgradewallet", fFirstRun))
     {
         int nMaxVersion = GetArg("-upgradewallet", 0);
@@ -747,12 +606,10 @@ bool AppInit2()
         if (!strErrors.str().empty())
             return InitError(strErrors.str());
     }
-
     if (fFirstRun)
     {
         // Create new keyUser and set as default key
         RandAddSeedPerfmon();
-
         CPubKey newDefaultKey;
         if (!pwalletMain->GetKeyFromPool(newDefaultKey, false))
             strErrors << _("Cannot initialize keypool") << "\n";
@@ -762,11 +619,8 @@ bool AppInit2()
     }
     LogPrintf("%s", strErrors.str().c_str());
     LogPrintf(" wallet %I64d ms\n", GetTimeMillis() - nStart);
-
     RegisterWallet(pwalletMain);
-
     CBlockIndex* pindexRescan = pindexBest;
-
     if (GetBoolArg("-rescan", false))
         pindexRescan = pindexGenesisBlock;
     else
@@ -776,7 +630,6 @@ bool AppInit2()
         if (walletdb.ReadBestBlock(locator))
             pindexRescan = pindexBest;
     }
-
     if (pindexBest != pindexRescan && pindexBest && pindexRescan && pindexBest->nHeight > pindexRescan->nHeight)
     {
         LogPrintf("pindexBest: %i, pindexRescan %i \n", pindexBest->nHeight, pindexRescan->nHeight);
@@ -786,48 +639,22 @@ bool AppInit2()
         LogPrintf(" rescan %I64d ms\n", GetTimeMillis() - nStart);
     }
 
-    // ********************************************************* Step 9: import blocks
+    // ********************************************************* Step 9: load peers
 
-    if (IsArgSet("-loadblock"))
-    {
-        BOOST_FOREACH(string strFile, gArgs.GetArgs("-loadblock"))
-        {
-            FILE *file = fopen(strFile.c_str(), "rb");
-            if (file)
-                LoadExternalBlockFile(file);
-        }
-        exit(0);
-    }
-
-    filesystem::path pathBootstrap = GetDataDir() / "bootstrap.dat";
-    if (filesystem::exists(pathBootstrap)) {
-        FILE *file = fopen(pathBootstrap.string().c_str(), "rb");
-        if (file) {
-            filesystem::path pathBootstrapOld = GetDataDir() / "bootstrap.dat.old";
-            LoadExternalBlockFile(file);
-            RenameOver(pathBootstrap, pathBootstrapOld);
-        }
-    }
-
-    // ********************************************************* Step 10: load peers
     LogPrintf("Loading addresses...\n");
     nStart = GetTimeMillis();
-
     {
         CAddrDB adb;
         if (!adb.Read(addrman))
             LogPrintf("Invalid or missing peers.dat; recreating\n");
     }
-
     LogPrintf("Loaded %i addresses from peers.dat  %I64d ms\n", addrman.size(), GetTimeMillis() - nStart);
 
-    // ********************************************************* Step 11: start node
+    // ********************************************************* Step 10: start node
 
     if (!CheckDiskSpace())
         return false;
-
     RandAddSeedPerfmon();
-
     //// debug print
     LogPrintf("mapBlockIndex.size() = %u \n",   mapBlockIndex.size());
     LogPrintf("nBestHeight = %d\n",                     pindexBest->nHeight);
@@ -835,36 +662,206 @@ bool AppInit2()
     LogPrintf("mapWallet.size() = %u \n",       pwalletMain->mapWallet.size());
     LogPrintf("mapAddressBook.size() = %u \n",  pwalletMain->mapAddressBook.size());
 
-    ///set the bestCheckpoint
-    std::map<int, uint256>::iterator iter;
-    for(iter = mapCheckpoints.begin(); iter != mapCheckpoints.end(); iter++) {
-        int keyval = iter->first;
-        if(keyval > nBestCheckpointHeight)
-        {
-            nBestCheckpointHeight = keyval;
-        }
-    }
-
     boost::thread* startNode = new boost::thread(&StartNode);
     ecc_threads.add_thread(startNode);
-
     boost::thread* RCPServer = new boost::thread(&ThreadRPCServer);
     ecc_threads.add_thread(RCPServer);
 
-    // ********************************************************* Step 12: finished
-    LogPrintf("Done loading\n");
+    // ********************************************************* Step 11: finished
 
+    LogPrintf("Done loading\n");
     if (!strErrors.str().empty())
         return InitError(strErrors.str());
-
-     // Add wallet transactions that aren't already in a block to mapTransactions
+    // Add wallet transactions that aren't already in a block to mapTransactions
     pwalletMain->ReacceptWalletTransactions();
-
     // Loop until process is exit()ed from shutdown() function,
     // called from ThreadRPCServer thread when a "stop" command is received.
     while (1)
         MilliSleep(5000);
-
     return true;
 }
 
+void StartNode()
+{
+        LogPrintf("NodeStarted\n");
+        // Make this thread recognisable as the startup thread
+        RenameThread("ECCoin-start");
+
+        if (semOutbound == NULL)
+        {
+            // initialize semaphore
+            int nMaxOutbound = MAX_OUTBOUND_CONNECTIONS;
+            semOutbound = new CSemaphore(nMaxOutbound);
+        }
+
+        if (pnodeLocalHost == NULL)
+        {
+            NodeId id = GetNewNodeId();
+            pnodeLocalHost = new CNode(id, nLocalServices, pindexBest->nHeight, INVALID_SOCKET, CAddress(CService("127.0.0.1", 0), nLocalServices));
+        }
+
+        Discover();
+
+        //
+        // Start threads
+        //
+
+        if (!GetBoolArg("-dnsseed", true))
+            LogPrintf("DNS seeding disabled\n");
+        else
+        {
+            boost::thread* DNSAddressSeed = new boost::thread(&ThreadDNSAddressSeed);
+            ecc_threads.add_thread(DNSAddressSeed);
+        }
+
+        // Map ports with UPnP
+        if (fUseUPnP)
+            MapPort();
+
+        // Send and receive from sockets, accept connections
+        boost::thread* SocketHandler = new boost::thread(&ThreadSocketHandler);
+        ecc_threads.add_thread(SocketHandler);
+
+        // Initiate outbound connections from -addnode
+        boost::thread* OpenAddedConnections = new boost::thread(&ThreadOpenAddedConnections);
+        ecc_threads.add_thread(OpenAddedConnections);
+
+        // Initiate outbound connections
+        boost::thread* OpenConnections = new boost::thread(&ThreadOpenConnections);
+        ecc_threads.add_thread(OpenConnections);
+
+        // Process messages
+        boost::thread* MessageHandler = new boost::thread(&ThreadMessageHandler);
+        ecc_threads.add_thread(MessageHandler);
+
+        // Dump network addresses
+        boost::thread* DumpAddress = new boost::thread(&ThreadDumpAddress);
+        ecc_threads.add_thread(DumpAddress);
+
+        // Mine proof-of-stake blocks in the background
+        if (!GetBoolArg("-staking", false))
+            LogPrintf("Staking disabled\n");
+        else
+        {
+            boost::thread* StakeMinter_Scrypt = new boost::thread(boost::bind(&ThreadStakeMinter_Scrypt, pwalletMain));
+            ecc_threads.add_thread(StakeMinter_Scrypt);
+        }
+        // Generate coins in the background
+        GenerateScryptCoins(GetBoolArg("-gen", false), pwalletMain);
+}
+
+
+
+
+/////////////////////////////////////////////////////////////////////
+//
+// Start
+//
+int main(int argc, char* argv[])
+{
+#ifdef HAVE_MALLOPT_ARENA_MAX
+    // glibc-specific: On 32-bit systems set the number of arenas to 1.
+    // By default, since glibc 2.10, the C library will create up to two heap
+    // arenas per core. This is known to cause excessive virtual address space
+    // usage in our usage. Work around it by setting the maximum number of
+    // arenas to 1.
+    if (sizeof(void*) == 4) {
+        mallopt(M_ARENA_MAX, 1);
+    }
+#endif
+    // On most POSIX systems (e.g. Linux, but not BSD) the environment's locale
+    // may be invalid, in which case the "C" locale is used as fallback.
+#if !defined(WIN32) && !defined(MAC_OSX) && !defined(__FreeBSD__) && !defined(__OpenBSD__)
+    try {
+        std::locale(""); // Raises a runtime error if current locale is invalid
+    } catch (const std::runtime_error&) {
+        setenv("LC_ALL", "C", 1);
+    }
+#endif
+    // The path locale is lazy initialized and to avoid deinitialization errors
+    // in multithreading environments, it is set explicitly by the main thread.
+    // A dummy locale is used to extract the internal default locale, used by
+    // fs::path, which is then used to explicitly imbue the path.
+    std::locale loc = fs::path::imbue(std::locale::classic());
+    fs::path::imbue(loc);
+
+    // Connect ECCoind signal handlers
+    noui_connect();
+
+    bool fRet = false;
+    //
+    // Parameters
+    //
+    ParseParameters(argc, argv);
+
+    // Process help and version before taking care about datadir
+    if (IsArgSet("-?") || IsArgSet("-h") ||  IsArgSet("-help") || IsArgSet("-version"))
+    {
+        std::string strUsage = strprintf(_("%s Daemon"), _("E-Currency Coin")) + " " + _("version") + " " + FormatFullVersion() + "\n";
+        if (IsArgSet("-version"))
+        {
+            strUsage += FormatParagraph(LicenseInfo());
+        }
+        else
+        {
+            strUsage += "\n" + _("Usage:") + "\n" +
+                  "  ECCoind [options]  " + strprintf(_("Start %s Daemon"), _("E-Currency Coin")) + "\n";
+            strUsage += "\n" + HelpMessage();
+        }
+        fprintf(stdout, "%s", strUsage.c_str());
+        return true;
+    }
+    bool fCommandLine = false;
+    try
+    {
+        if (!fs::is_directory(GetDataDir(false)))
+        {
+            fprintf(stderr, "Error: Specified data directory \"%s\" does not exist.\n", GetArg("-datadir", "").c_str());
+            exit(EXIT_FAILURE);
+        }
+        try
+        {
+            ReadConfigFile();
+        }
+        catch (const std::exception& e)
+        {
+            fprintf(stderr,"Error reading configuration file: %s\n", e.what());
+            exit(EXIT_FAILURE);
+        }
+        // Command-line RPC
+        for (int i = 1; i < argc; i++)
+            if (!IsSwitchChar(argv[i][0]) && !boost::algorithm::istarts_with(argv[i], "ECCoin:"))
+                fCommandLine = true;
+        if (fCommandLine)
+        {
+            int ret = CommandLineRPC(argc, argv);
+            exit(ret);
+        }
+        // Set this early so that parameter interactions go to console
+        InitLogging();
+        if(!InitParameterInteraction())
+        {
+            // InitError will have been called with detailed error, which ends up on console
+            exit(EXIT_FAILURE);
+        }
+        if (!AppInitBasicSetup())
+        {
+            // InitError will have been called with detailed error, which ends up on console
+            exit(EXIT_FAILURE);
+        }
+        fRet = AppInit2();
+        if (fRet && fDaemon)
+            exit(EXIT_SUCCESS);
+    }
+    catch (const std::exception& e) {
+        PrintExceptionContinue(&e, "AppInit()");
+    } catch (...) {
+        PrintExceptionContinue(NULL, "AppInit()");
+    }
+    if (!fRet)
+    {
+        Shutdown();
+        exit(EXIT_FAILURE);
+    }
+    exit(EXIT_SUCCESS);
+}
