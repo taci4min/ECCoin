@@ -164,6 +164,7 @@ OBJS= \
     build/p2p/msgcore.o \
     build/p2p/msgheaders.o \
     build/p2p/netmsgtypes.o \
+    build/p2p/msgprocessing.o \
     build/fs.o \
     build/daemon.o
 
