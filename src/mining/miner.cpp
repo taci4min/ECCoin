@@ -742,31 +742,3 @@ void static ThreadScryptMiner(void* parg)
     nHPSTimerStart = 0;
     LogPrintf("ThreadBitcoinMiner exiting\n");
 }
-
-
-void GenerateScryptCoins(bool fGenerate, CWallet* pwallet)
-{
-    fGenerateBitcoins = fGenerate;
-    nLimitProcessors = GetArg("-genproclimit", -1);
-    if (nLimitProcessors == 0)
-        fGenerateBitcoins = false;
-    fLimitProcessors = (nLimitProcessors != -1);
-
-    if (fGenerate)
-    {
-        int nProcessors = GetNumCores();
-        LogPrintf("%d processors\n", nProcessors);
-        if (nProcessors < 1)
-            nProcessors = 1;
-        if (fLimitProcessors && nProcessors > nLimitProcessors)
-            nProcessors = nLimitProcessors;
-        int nAddThreads = nProcessors;
-        LogPrintf("Starting %d BitcoinMiner threads\n", nAddThreads);
-        for (int i = 0; i < nAddThreads; i++)
-        {
-            boost::thread* ScryptMiner = new boost::thread(boost::bind(&ThreadScryptMiner, pwallet));
-            ecc_threads.add_thread(ScryptMiner);
-            MilliSleep(10);
-        }
-    }
-}

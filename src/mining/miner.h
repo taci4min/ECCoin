@@ -18,8 +18,6 @@ void SHA256Transform(void* pstate, void* pinput, const void* pinit);
 
 void ScryptMiner(CWallet *pwallet, bool fProofOfStake);
 
-void GenerateScryptCoins(bool fGenerate, CWallet* pwallet);
-
 void IncrementExtraNonce(CBlock* pblock, CBlockIndex* pindexPrev, unsigned int& nExtraNonce);
 void FormatHashBuffers(CBlock* pblock, char* pmidstate, char* pdata, char* phash1);
 bool CheckWork(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey);
