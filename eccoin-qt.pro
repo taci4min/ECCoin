@@ -214,7 +214,6 @@ HEADERS += \
     src/json/json_spirit_value.h \
     src/json/json_spirit_writer.h \
     src/json/json_spirit_writer_template.h \
-    src/daemon.h \
     src/crypto/hash.h \
     src/crypto/scrypt.h \
     src/rpc/bitcoinrpc.h \
@@ -271,7 +270,6 @@ SOURCES += \
     src/util/utilexceptions.cpp \
     src/rpc/rpcnet.cpp \
     src/rpc/rpcwallet.cpp \
-    src/daemon.cpp \
     src/global.cpp \
     src/init.cpp \
     src/key.cpp \
