@@ -36,8 +36,6 @@
 using namespace std;
 using namespace boost;
 
-static const int MAX_OUTBOUND_CONNECTIONS = 1000;
-
 void InitializeNode(CNode *pnode)
 {
     CAddress addr = pnode->addr;
@@ -75,7 +73,6 @@ std::atomic<NodeId> nLastNodeId(0);
 
 static bool vfReachable[NET_MAX] = {};
 static bool vfLimited[NET_MAX] = {};
-static CNode* pnodeLocalHost = NULL;
 CAddress addrSeenByPeer(CService("0.0.0.0", 0), nLocalServices);
 static std::vector<SOCKET> vhListenSocket;
 CAddrMan addrman;
@@ -648,68 +645,6 @@ bool BindListenPort(const CService &addrBind, string& strError)
         AddLocal(addrBind, LOCAL_BIND);
 
     return true;
-}
-
-void static Discover()
-{
-    if (!fDiscover)
-        return;
-#ifdef WIN32
-    // Get local host IP
-    char pszHostName[1000] = "";
-    if (gethostname(pszHostName, sizeof(pszHostName)) != SOCKET_ERROR)
-    {
-        vector<CNetAddr> vaddr;
-        if (LookupHost(pszHostName, vaddr))
-        {
-            BOOST_FOREACH (const CNetAddr &addr, vaddr)
-            {
-                AddLocal(addr, LOCAL_IF);
-            }
-        }
-    }
-#else
-    // Get local host ip
-    struct ifaddrs* myaddrs;
-    if (getifaddrs(&myaddrs) == 0)
-    {
-        for (struct ifaddrs* ifa = myaddrs; ifa != NULL; ifa = ifa->ifa_next)
-        {
-            if (ifa->ifa_addr == NULL) continue;
-            if ((ifa->ifa_flags & IFF_UP) == 0) continue;
-            if (strcmp(ifa->ifa_name, "lo") == 0) continue;
-            if (strcmp(ifa->ifa_name, "lo0") == 0) continue;
-            if (ifa->ifa_addr->sa_family == AF_INET)
-            {
-                struct sockaddr_in* s4 = (struct sockaddr_in*)(ifa->ifa_addr);
-                CNetAddr addr(s4->sin_addr);
-                if (AddLocal(addr, LOCAL_IF))
-                    LogPrintf("IPv4 %s: %s\n", ifa->ifa_name, addr.ToString().c_str());
-            }
-#ifdef USE_IPV6
-            else if (ifa->ifa_addr->sa_family == AF_INET6)
-            {
-                struct sockaddr_in6* s6 = (struct sockaddr_in6*)(ifa->ifa_addr);
-                CNetAddr addr(s6->sin6_addr);
-                if (AddLocal(addr, LOCAL_IF))
-                    LogPrintf("IPv6 %s: %s\n", ifa->ifa_name, addr.ToString().c_str());
-            }
-#endif
-        }
-        freeifaddrs(myaddrs);
-    }
-#endif
-
-    // Don't use external IPv4 discovery, when -onlynet="IPv6"
-    if (!IsLimited(NET_IPV4))
-    {
-        CNetAddr addrLocalHost;
-        if (GetMyExternalIP(addrLocalHost))
-        {
-            LogPrintf("GetMyExternalIP() returned %s\n", addrLocalHost.ToStringIP().c_str());
-            AddLocal(addrLocalHost, LOCAL_HTTP);
-        }
-    }
 }
 
 class CNetCleanup

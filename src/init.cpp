@@ -681,6 +681,10 @@ bool AppInit2()
     return true;
 }
 
+
+static const int MAX_OUTBOUND_CONNECTIONS = 1000;
+static CNode* pnodeLocalHost = NULL;
+
 void StartNode()
 {
         LogPrintf("NodeStarted\n");
@@ -700,15 +704,69 @@ void StartNode()
             pnodeLocalHost = new CNode(id, nLocalServices, pindexBest->nHeight, INVALID_SOCKET, CAddress(CService("127.0.0.1", 0), nLocalServices));
         }
 
-        Discover();
+        if (!fDiscover)
+            return;
+#ifdef WIN32
+        // Get local host IP
+        char pszHostName[1000] = "";
+        if (gethostname(pszHostName, sizeof(pszHostName)) != SOCKET_ERROR)
+        {
+            vector<CNetAddr> vaddr;
+            if (LookupHost(pszHostName, vaddr))
+            {
+                BOOST_FOREACH (const CNetAddr &addr, vaddr)
+                {
+                    AddLocal(addr, LOCAL_IF);
+                }
+            }
+        }
+#else
+        // Get local host ip
+        struct ifaddrs* myaddrs;
+        if (getifaddrs(&myaddrs) == 0)
+        {
+            for (struct ifaddrs* ifa = myaddrs; ifa != NULL; ifa = ifa->ifa_next)
+            {
+                if (ifa->ifa_addr == NULL) continue;
+                if ((ifa->ifa_flags & IFF_UP) == 0) continue;
+                if (strcmp(ifa->ifa_name, "lo") == 0) continue;
+                if (strcmp(ifa->ifa_name, "lo0") == 0) continue;
+                if (ifa->ifa_addr->sa_family == AF_INET)
+                {
+                    struct sockaddr_in* s4 = (struct sockaddr_in*)(ifa->ifa_addr);
+                    CNetAddr addr(s4->sin_addr);
+                    if (AddLocal(addr, LOCAL_IF))
+                        LogPrintf("IPv4 %s: %s\n", ifa->ifa_name, addr.ToString().c_str());
+                }
+#ifdef USE_IPV6
+                else if (ifa->ifa_addr->sa_family == AF_INET6)
+                {
+                    struct sockaddr_in6* s6 = (struct sockaddr_in6*)(ifa->ifa_addr);
+                    CNetAddr addr(s6->sin6_addr);
+                    if (AddLocal(addr, LOCAL_IF))
+                        LogPrintf("IPv6 %s: %s\n", ifa->ifa_name, addr.ToString().c_str());
+                }
+#endif
+            }
+            freeifaddrs(myaddrs);
+        }
+#endif
 
+        // Don't use external IPv4 discovery, when -onlynet="IPv6"
+        if (!IsLimited(NET_IPV4))
+        {
+            CNetAddr addrLocalHost;
+            if (GetMyExternalIP(addrLocalHost))
+            {
+                LogPrintf("GetMyExternalIP() returned %s\n", addrLocalHost.ToStringIP().c_str());
+                AddLocal(addrLocalHost, LOCAL_HTTP);
+            }
+        }
         //
         // Start threads
         //
 
-        if (!GetBoolArg("-dnsseed", true))
-            LogPrintf("DNS seeding disabled\n");
-        else
+        if (GetBoolArg("-dnsseed", true))
         {
             boost::thread* DNSAddressSeed = new boost::thread(&ThreadDNSAddressSeed);
             ecc_threads.add_thread(DNSAddressSeed);
@@ -746,8 +804,6 @@ void StartNode()
             boost::thread* StakeMinter_Scrypt = new boost::thread(boost::bind(&ThreadStakeMinter_Scrypt, pwalletMain));
             ecc_threads.add_thread(StakeMinter_Scrypt);
         }
-        // Generate coins in the background
-        GenerateScryptCoins(GetBoolArg("-gen", false), pwalletMain);
 }
 
 
@@ -837,8 +893,13 @@ int main(int argc, char* argv[])
             int ret = CommandLineRPC(argc, argv);
             exit(ret);
         }
-        // Set this early so that parameter interactions go to console
-        InitLogging();
+        fPrintToConsole = GetBoolArg("-printtoconsole", false);
+        fLogTimestamps = GetBoolArg("-logtimestamps", DEFAULT_LOGTIMESTAMPS);
+        fLogTimeMicros = GetBoolArg("-logtimemicros", DEFAULT_LOGTIMEMICROS);
+        fLogIPs = GetBoolArg("-logips", DEFAULT_LOGIPS);
+
+        LogPrintf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+        LogPrintf("Bitcoin version %s\n", FormatFullVersion());
         if(!InitParameterInteraction())
         {
             // InitError will have been called with detailed error, which ends up on console
