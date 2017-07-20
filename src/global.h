@@ -9,11 +9,12 @@
 #include "tx/tx.h"
 #include "tx/inpoint.h"
 #include "tx/merkletx.h"
+#include "uint256.h"
 
 
 /// Program constants ///
-static const uint256 hashGenesisBlock("0xa60ac43c88dbc44b826cf315352a8a7b373d2af8b6e1c4c4a0638859c5e9ecd1");
-static const uint256 hashGenesisBlockTestNet("0xa60ac43c88dbc44b826cf315352a8a7b373d2af8b6e1c4c4a0638859c5e9ecd1");
+static const uint256 hashGenesisBlock = uint256S("0xa60ac43c88dbc44b826cf315352a8a7b373d2af8b6e1c4c4a0638859c5e9ecd1");
+static const uint256 hashGenesisBlockTestNet = uint256S("0xa60ac43c88dbc44b826cf315352a8a7b373d2af8b6e1c4c4a0638859c5e9ecd1");
 static const int LAST_POW_BLOCK = 86400;
 static const unsigned int MAX_BLOCK_SIZE = 1000000;
 static const unsigned int MAX_BLOCK_SIZE_GEN = MAX_BLOCK_SIZE/2;

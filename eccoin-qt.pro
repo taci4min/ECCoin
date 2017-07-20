@@ -250,7 +250,6 @@ HEADERS += \
     src/p2p/nodestats.h \
     src/p2p/protocol.h \
     src/p2p/proxyutils.h \
-    src/p2p/requests.h \
     src/p2p/service.h \
     src/p2p/subnet.h \
     src/p2p/socketutils.h \
@@ -258,7 +257,12 @@ HEADERS += \
     src/p2p/cnodestate.h \
     src/p2p/netmsgtypes.h \
     src/shutdown.h \
-    src/threads.h
+    src/threads.h \
+    src/p2p/connman.h \
+    src/p2p/addrdb.h \
+    src/crypto/common.h \
+    src/crypto/crypto_endian.h \
+    src/crypto/byteswap.h
 
 
 SOURCES += \
@@ -316,14 +320,16 @@ SOURCES += \
     src/p2p/subnet.cpp \
     src/p2p/socketutils.cpp \
     src/p2p/service.cpp \
-    src/p2p/requests.cpp \
     src/p2p/proxyutils.cpp \
     src/p2p/protocol.cpp \
     src/p2p/msgprocessing.cpp \
     src/p2p/cnodestate.cpp \
     src/p2p/netmsgtypes.cpp \
     src/shutdown.cpp \
-    src/threads.cpp
+    src/threads.cpp \
+    src/p2p/connman.cpp \
+    src/p2p/addrdb.cpp \
+    src/uint256.cpp
 
 
 CODECFORTR = UTF-8

@@ -26,7 +26,6 @@
 #include "protocol.h"
 #include "addrman.h"
 
-class CRequestTracker;
 class CNode;
 class CBlockIndex;
 
@@ -49,7 +48,6 @@ CNode* FindNode(std::string addrName);
 CNode* ConnectNode(CAddress addrConnect, const char *strDest = NULL);
 void MapPort();
 unsigned short GetListenPort();
-bool BindListenPort(const CService &bindAddr, std::string& strError=REF(std::string()));
 void StartNode();
 bool StopNode();
 
@@ -106,8 +104,6 @@ extern bool fUseUPnP;
 extern CAddress addrSeenByPeer;
 extern CAddrMan addrman;
 
-extern std::vector<CNode*> vNodes;
-extern CCriticalSection cs_vNodes;
 extern std::map<CInv, CDataStream> mapRelay;
 extern std::deque<std::pair<int64_t, CInv> > vRelayExpiration;
 extern CCriticalSection cs_mapRelay;
@@ -118,20 +114,7 @@ extern int highestAskedFor;
 extern bool isSynced;
 
 
-inline void RelayInventory(const CInv& inv)
-{
-    // Put on lists to offer to the other nodes
-    {
-        LOCK(cs_vNodes);
-        BOOST_FOREACH(CNode* pnode, vNodes)
-        {
-            std::vector<CInv> vInv;
-            vInv.push_back(inv);
-            LOCK(pnode->cs_vSend);
-            pnode->PushMessage("inv", vInv);
-        }
-    }
-}
+
 
 void RelayTransaction(const CTransaction& tx, const uint256& hash);
 void RelayTransaction(const CTransaction& tx, const uint256& hash, const CDataStream& ss);

@@ -42,12 +42,13 @@ public:
         nCreateTime = nCreateTime_;
     }
 
-    IMPLEMENT_SERIALIZE
-    (
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
         READWRITE(this->nVersion);
-        nVersion = this->nVersion;
         READWRITE(nCreateTime);
-    )
+    }
 
     void SetNull()
     {
@@ -61,12 +62,36 @@ public:
 class CWalletDB : public CDB
 {
 public:
-    CWalletDB(std::string strFilename, const char* pszMode="r+") : CDB(strFilename.c_str(), pszMode)
+    CWalletDB(CWalletDBWrapper& dbw, const char* pszMode = "r+", bool fFlushOnClose = true) : batch(dbw, pszMode, fFlushOnClose), m_dbw(dbw)
     {
     }
 private:
     CWalletDB(const CWalletDB&);
     void operator=(const CWalletDB&);
+    CDB batch;
+    CWalletDBWrapper& m_dbw;
+
+
+    template <typename K, typename T>
+    bool WriteIC(const K& key, const T& value, bool fOverwrite = true)
+    {
+        if (!batch.Write(key, value, fOverwrite)) {
+            return false;
+        }
+        m_dbw.IncrementUpdateCounter();
+        return true;
+    }
+
+    template <typename K>
+    bool EraseIC(const K& key)
+    {
+        if (!batch.Erase(key)) {
+            return false;
+        }
+        m_dbw.IncrementUpdateCounter();
+        return true;
+    }
+
 public:
     bool WriteName(const std::string& strAddress, const std::string& strName);
 
@@ -75,23 +100,23 @@ public:
     bool WriteTx(uint256 hash, const CWalletTx& wtx)
     {
         nWalletDBUpdated++;
-        return Write(std::make_pair(std::string("tx"), hash), wtx);
+        return WriteIC(std::make_pair(std::string("tx"), hash), wtx);
     }
 
     bool EraseTx(uint256 hash)
     {
         nWalletDBUpdated++;
-        return Erase(std::make_pair(std::string("tx"), hash));
+        return EraseIC(std::make_pair(std::string("tx"), hash));
     }
 
     bool WriteKey(const CPubKey& vchPubKey, const CPrivKey& vchPrivKey, const CKeyMetadata &keyMeta)
     {
         nWalletDBUpdated++;
 
-        if(!Write(std::make_pair(std::string("keymeta"), vchPubKey), keyMeta))
+        if(!WriteIC(std::make_pair(std::string("keymeta"), vchPubKey), keyMeta))
             return false;
 
-        return Write(std::make_pair(std::string("key"), vchPubKey.Raw()), vchPrivKey, false);
+        return WriteIC(std::make_pair(std::string("key"), vchPubKey.Raw()), vchPrivKey, false);
     }
 
     bool WriteCryptedKey(const CPubKey& vchPubKey, const std::vector<unsigned char>& vchCryptedSecret, const CKeyMetadata &keyMeta)
@@ -99,15 +124,15 @@ public:
         nWalletDBUpdated++;
         bool fEraseUnencryptedKey = true;
 
-        if(!Write(std::make_pair(std::string("keymeta"), vchPubKey), keyMeta))
+        if(!WriteIC(std::make_pair(std::string("keymeta"), vchPubKey), keyMeta))
             return false;
 
-        if (!Write(std::make_pair(std::string("ckey"), vchPubKey.Raw()), vchCryptedSecret, false))
+        if (!WriteIC(std::make_pair(std::string("ckey"), vchPubKey.Raw()), vchCryptedSecret, false))
             return false;
         if (fEraseUnencryptedKey)
         {
-            Erase(std::make_pair(std::string("key"), vchPubKey.Raw()));
-            Erase(std::make_pair(std::string("wkey"), vchPubKey.Raw()));
+            EraseIC(std::make_pair(std::string("key"), vchPubKey.Raw()));
+            EraseIC(std::make_pair(std::string("wkey"), vchPubKey.Raw()));
         }
         return true;
     }
@@ -115,19 +140,19 @@ public:
     bool WriteMasterKey(unsigned int nID, const CMasterKey& kMasterKey)
     {
         nWalletDBUpdated++;
-        return Write(std::make_pair(std::string("mkey"), nID), kMasterKey, true);
+        return WriteIC(std::make_pair(std::string("mkey"), nID), kMasterKey, true);
     }
 
     bool WriteCScript(const uint160& hash, const CScript& redeemScript)
     {
         nWalletDBUpdated++;
-        return Write(std::make_pair(std::string("cscript"), hash), redeemScript, false);
+        return WriteIC(std::make_pair(std::string("cscript"), hash), redeemScript, false);
     }
 
     bool WriteBestBlock(const CBlockLocator& locator)
     {
         nWalletDBUpdated++;
-        return Write(std::string("bestblock"), locator);
+        return WriteIC(std::string("bestblock"), locator);
     }
 
     bool ReadBestBlock(CBlockLocator& locator)
@@ -138,13 +163,13 @@ public:
     bool WriteOrderPosNext(int64_t nOrderPosNext)
     {
         nWalletDBUpdated++;
-        return Write(std::string("orderposnext"), nOrderPosNext);
+        return WriteIC(std::string("orderposnext"), nOrderPosNext);
     }
 
     bool WriteDefaultKey(const CPubKey& vchPubKey)
     {
         nWalletDBUpdated++;
-        return Write(std::string("defaultkey"), vchPubKey.Raw());
+        return WriteIC(std::string("defaultkey"), vchPubKey.Raw());
     }
 
     bool ReadPool(int64_t nPool, CKeyPool& keypool)
@@ -155,13 +180,13 @@ public:
     bool WritePool(int64_t nPool, const CKeyPool& keypool)
     {
         nWalletDBUpdated++;
-        return Write(std::make_pair(std::string("pool"), nPool), keypool);
+        return WriteIC(std::make_pair(std::string("pool"), nPool), keypool);
     }
 
     bool ErasePool(int64_t nPool)
     {
         nWalletDBUpdated++;
-        return Erase(std::make_pair(std::string("pool"), nPool));
+        return EraseIC(std::make_pair(std::string("pool"), nPool));
     }
 
     // Settings are no longer stored in wallet.dat; these are
@@ -175,17 +200,17 @@ public:
     bool WriteSetting(const std::string& strKey, const T& value)
     {
         nWalletDBUpdated++;
-        return Write(std::make_pair(std::string("setting"), strKey), value);
+        return WriteIC(std::make_pair(std::string("setting"), strKey), value);
     }
     bool EraseSetting(const std::string& strKey)
     {
         nWalletDBUpdated++;
-        return Erase(std::make_pair(std::string("setting"), strKey));
+        return EraseIC(std::make_pair(std::string("setting"), strKey));
     }
 
     bool WriteMinVersion(int nVersion)
     {
-        return Write(std::string("minversion"), nVersion);
+        return WriteIC(std::string("minversion"), nVersion);
     }
 
     bool ReadAccount(const std::string& strAccount, CAccount& account);

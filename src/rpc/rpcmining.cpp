@@ -92,7 +92,7 @@ Value getworkex(const Array& params, bool fHelp)
             "If [data, coinbase] is not specified, returns extended work data.\n"
         );
 
-    if (vNodes.empty())
+    if ((int)pconnman->GetNodeCount(CConnman::CONNECTIONS_ALL) <= 0)
         throw JSONRPCError(-9, "eccoin is not connected!");
 
     if (IsInitialBlockDownload())
@@ -226,7 +226,7 @@ Value getwork(const Array& params, bool fHelp)
             "  \"target\" : little endian hash target\n"
             "If [data] is specified, tries to solve the block and returns true if it was successful.");
 
-    if (vNodes.empty())
+    if ((int)pconnman->GetNodeCount(CConnman::CONNECTIONS_ALL) <= 0)
         throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "eccoin is not connected!");
 
     if (IsInitialBlockDownload())
@@ -370,7 +370,7 @@ Value getblocktemplate(const Array& params, bool fHelp)
     if (strMode != "template")
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid mode");
 
-    if (vNodes.empty())
+    if ((int)pconnman->GetNodeCount(CConnman::CONNECTIONS_ALL) <= 0)
         throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "eccoin is not connected!");
 
     if (IsInitialBlockDownload())

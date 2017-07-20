@@ -15,7 +15,13 @@ public:
     CDiskTxPos();
     CDiskTxPos(unsigned int nFileIn, unsigned int nBlockPosIn, unsigned int nTxPosIn);
 
-    IMPLEMENT_SERIALIZE( READWRITE(FLATDATA(*this)); )
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
+        READWRITE(FLATDATA(*this));
+    }
+
     void SetNull();
     bool IsNull() const;
 

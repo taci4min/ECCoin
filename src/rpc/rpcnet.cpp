@@ -2,14 +2,13 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "p2p/net.h"
+#include "p2p/connman.h"
 #include "bitcoinrpc.h"
 #include "wallet/wallet.h"
 #include "wallet/db.h"
 #include "wallet/walletdb.h"
 
 using namespace json_spirit;
-using namespace std;
 
 Value getconnectioncount(const Array& params, bool fHelp)
 {
@@ -18,22 +17,9 @@ Value getconnectioncount(const Array& params, bool fHelp)
             "getconnectioncount\n"
             "Returns the number of connections to other nodes.");
 
-    LOCK(cs_vNodes);
-    return (int)vNodes.size();
+    return (int) pconnman->GetNodeCount(CConnman::CONNECTIONS_ALL);
 }
 
-static void CopyNodeStats(std::vector<CNodeStats>& vstats)
-{
-    vstats.clear();
-
-    LOCK(cs_vNodes);
-    vstats.reserve(vNodes.size());
-    BOOST_FOREACH(CNode* pnode, vNodes) {
-        CNodeStats stats;
-        pnode->copyStats(stats);
-        vstats.push_back(stats);
-    }
-}
 
 Value getpeerinfo(const Array& params, bool fHelp)
 {
@@ -42,8 +28,8 @@ Value getpeerinfo(const Array& params, bool fHelp)
             "getpeerinfo\n"
             "Returns data about each connected network node.");
 
-    vector<CNodeStats> vstats;
-    CopyNodeStats(vstats);
+    std::vector<CNodeStats> vstats;
+    pconnman->GetNodeStats(vstats);
 
     Array ret;
 

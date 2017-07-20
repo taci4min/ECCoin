@@ -117,20 +117,24 @@ public:
 
     CDiskBlockIndex()
     {
-        hashPrev = 0;
-        hashNext = 0;
-        blockHash = 0;
+        hashPrev = uint256();
+        hashNext = uint256();
+        blockHash = uint256();
     }
 
     explicit CDiskBlockIndex(CBlockIndex* pindex) : CBlockIndex(*pindex)
     {
-        hashPrev = (pprev ? pprev->GetBlockHash() : 0);
-        hashNext = (pnext ? pnext->GetBlockHash() : 0);
+        hashPrev = (pprev ? pprev->GetBlockHash() : uint256());
+        hashNext = (pnext ? pnext->GetBlockHash() : uint256());
     }
 
-    IMPLEMENT_SERIALIZE
-    (
-        if (!(nType & SER_GETHASH))
+
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
+        int nVersion = s.GetVersion();
+        if (!(s.GetType() & SER_GETHASH))
             READWRITE(nVersion);
 
         READWRITE(hashNext);
@@ -147,7 +151,7 @@ public:
             READWRITE(nStakeTime);
             READWRITE(hashProofOfStake);
         }
-        else if (fRead)
+        else
         {
             const_cast<CDiskBlockIndex*>(this)->prevoutStake.SetNull();
             const_cast<CDiskBlockIndex*>(this)->nStakeTime = 0;
@@ -162,7 +166,7 @@ public:
         READWRITE(nBits);
         READWRITE(nNonce);
         READWRITE(blockHash);
-    )
+    }
 
     uint256 GetBlockHash() const;
     std::string ToString() const;

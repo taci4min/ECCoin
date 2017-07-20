@@ -13,10 +13,14 @@ public:
 
     COutPoint();
     COutPoint(uint256 hashIn, unsigned int nIn);
-    IMPLEMENT_SERIALIZE
-    (
-            READWRITE(FLATDATA(*this));
-    )
+
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
+        READWRITE(hash);
+        READWRITE(n);
+    }
 
     friend bool operator<(const COutPoint& a, const COutPoint& b)
     {

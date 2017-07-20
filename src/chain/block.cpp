@@ -8,6 +8,7 @@
 #include "wallet/wallet.h"
 #include "global.h"
 #include "chain.h"
+#include "p2p/connman.h"
 
 #include <boost/thread.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -1004,17 +1005,9 @@ bool CBlock::AcceptBlock(CBlock* pblock)
     int nBlockEstimate = pcheckpointMain->GetTotalBlocksEstimate();
     if (pindexBest->GetBlockHash() == hash)
     {
-        LOCK(cs_vNodes);
-        BOOST_FOREACH(CNode* pnode, vNodes)
-        {
-            if (pindexBest->nHeight > (pnode->nStartingHeight != -1 ? pnode->nStartingHeight - 2000 : nBlockEstimate))
-            {
-                std::vector<CInv> vInv;
-                vInv.push_back(CInv(MSG_BLOCK, hash));
-                LOCK(pnode->cs_vSend);
-                pnode->PushMessage("inv", vInv);
-            }
-        }
+        std::vector<CInv> vInv;
+        vInv.push_back(CInv(MSG_BLOCK, hash));
+        pconnman->LegacyBlockBroadcast(vInv, nBlockEstimate);
     }
 
     return true;

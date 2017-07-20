@@ -48,7 +48,7 @@ public:
 class CKeyID : public uint160
 {
 public:
-    CKeyID() : uint160(0) { }
+    CKeyID() : uint160() { }
     CKeyID(const uint160 &in) : uint160(in) { }
 };
 
@@ -56,7 +56,7 @@ public:
 class CScriptID : public uint160
 {
 public:
-    CScriptID() : uint160(0) { }
+    CScriptID() : uint160() { }
     CScriptID(const uint160 &in) : uint160(in) { }
 };
 
@@ -73,9 +73,13 @@ public:
     friend bool operator!=(const CPubKey &a, const CPubKey &b) { return a.vchPubKey != b.vchPubKey; }
     friend bool operator<(const CPubKey &a, const CPubKey &b) { return a.vchPubKey < b.vchPubKey; }
 
-    IMPLEMENT_SERIALIZE(
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
         READWRITE(vchPubKey);
-    )
+    }
+
 
     //! Simple read-only vector-like interface to the pubkey data.
     unsigned int size() const { return vchPubKey.size(); }

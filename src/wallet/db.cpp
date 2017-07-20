@@ -229,65 +229,64 @@ void CDBEnv::CheckpointLSN(std::string strFile)
 }
 
 
-CDB::CDB(const char *pszFile, const char* pszMode) :
-    pdb(NULL), activeTxn(NULL)
+CDB::CDB(CWalletDBWrapper& dbw, const char* pszMode, bool fFlushOnCloseIn) : pdb(NULL), activeTxn(NULL)
 {
-    int ret;
-    if (pszFile == NULL)
-        return;
-
     fReadOnly = (!strchr(pszMode, '+') && !strchr(pszMode, 'w'));
-    bool fCreate = strchr(pszMode, 'c');
+    fFlushOnClose = fFlushOnCloseIn;
+    env = dbw.env;
+    if (dbw.IsDummy()) {
+        return;
+    }
+    const std::string &strFilename = dbw.strFile;
+
+    bool fCreate = strchr(pszMode, 'c') != NULL;
     unsigned int nFlags = DB_THREAD;
     if (fCreate)
         nFlags |= DB_CREATE;
 
     {
-        LOCK(bitdb.cs_db);
-        if (!bitdb.Open(GetDataDir()))
-            throw runtime_error("env open failed");
+        LOCK(env->cs_db);
+        if (!env->Open(GetDataDir()))
+            throw std::runtime_error("CDB: Failed to open database environment.");
 
-        strFile = pszFile;
-        ++bitdb.mapFileUseCount[strFile];
-        pdb = bitdb.mapDb[strFile];
-        if (pdb == NULL)
-        {
-            pdb = new Db(&bitdb.dbenv, 0);
+        strFile = strFilename;
+        ++env->mapFileUseCount[strFile];
+        pdb = env->mapDb[strFile];
+        if (pdb == NULL) {
+            int ret;
+            pdb = new Db(env->dbenv, 0);
 
-            bool fMockDb = bitdb.IsMock();
-            if (fMockDb)
-            {
-                DbMpoolFile*mpf = pdb->get_mpf();
+            bool fMockDb = env->IsMock();
+            if (fMockDb) {
+                DbMpoolFile* mpf = pdb->get_mpf();
                 ret = mpf->set_flags(DB_MPOOL_NOFILE, 1);
                 if (ret != 0)
-                    throw runtime_error(strprintf("CDB() : failed to configure for no temp file backing for database %s", pszFile));
+                    throw std::runtime_error(strprintf("CDB: Failed to configure for no temp file backing for database %s", strFile));
             }
 
-            ret = pdb->open(NULL,      // Txn pointer
-                            fMockDb ? NULL : pszFile,   // Filename
-                            "main",    // Logical db name
-                            DB_BTREE,  // Database type
-                            nFlags,    // Flags
+            ret = pdb->open(NULL,                               // Txn pointer
+                            fMockDb ? NULL : strFile.c_str(),   // Filename
+                            fMockDb ? strFile.c_str() : "main", // Logical db name
+                            DB_BTREE,                           // Database type
+                            nFlags,                             // Flags
                             0);
 
-            if (ret != 0)
-            {
+            if (ret != 0) {
                 delete pdb;
                 pdb = NULL;
-                --bitdb.mapFileUseCount[strFile];
+                --env->mapFileUseCount[strFile];
                 strFile = "";
-                throw runtime_error(strprintf("CDB() : can't open database file %s, error %d", pszFile, ret));
+                throw std::runtime_error(strprintf("CDB: Error %d, can't open database %s", ret, strFilename));
             }
 
-            if (fCreate && !Exists(string("version")))
-            {
+            if (fCreate && !Exists(std::string("version"))) {
                 bool fTmp = fReadOnly;
                 fReadOnly = false;
                 WriteVersion(CLIENT_VERSION);
                 fReadOnly = fTmp;
             }
 
-            bitdb.mapDb[strFile] = pdb;
+            env->mapDb[strFile] = pdb;
         }
     }
 }
@@ -309,20 +308,12 @@ void CDB::Close()
     activeTxn = NULL;
     pdb = NULL;
 
-    // Flush database activity from memory pool to disk log
-    unsigned int nMinutes = 0;
-    if (fReadOnly)
-        nMinutes = 1;
-    if (IsChainFile(strFile))
-        nMinutes = 2;
-    if (IsChainFile(strFile) && IsInitialBlockDownload())
-        nMinutes = 5;
-
-    bitdb.dbenv.txn_checkpoint(nMinutes ? GetArg("-dblogsize", 100)*1024 : 0, nMinutes, 0);
+    if (fFlushOnClose)
+        Flush();
 
     {
-        LOCK(bitdb.cs_db);
-        --bitdb.mapFileUseCount[strFile];
+        LOCK(env->cs_db);
+        --env->mapFileUseCount[strFile];
     }
 }
 
@@ -350,91 +341,86 @@ bool CDBEnv::RemoveDb(const string& strFile)
     return (rc == 0);
 }
 
-bool CDB::Rewrite(const string& strFile, const char* pszSkip)
+bool CDB::Rewrite(CWalletDBWrapper& dbw, const char* pszSkip)
 {
-    while (!fShutdown)
-    {
+    if (dbw.IsDummy()) {
+        return true;
+    }
+    CDBEnv *env = dbw.env;
+    const std::string& strFile = dbw.strFile;
+    while (true) {
         {
-            LOCK(bitdb.cs_db);
-            if (!bitdb.mapFileUseCount.count(strFile) || bitdb.mapFileUseCount[strFile] == 0)
-            {
+            LOCK(env->cs_db);
+            if (!env->mapFileUseCount.count(strFile) || env->mapFileUseCount[strFile] == 0) {
                 // Flush log data to the dat file
-                bitdb.CloseDb(strFile);
-                bitdb.CheckpointLSN(strFile);
-                bitdb.mapFileUseCount.erase(strFile);
+                env->CloseDb(strFile);
+                env->CheckpointLSN(strFile);
+                env->mapFileUseCount.erase(strFile);
 
                 bool fSuccess = true;
-                LogPrintf("Rewriting %s...\n", strFile.c_str());
-                string strFileRes = strFile + ".rewrite";
+                LogPrintf("CDB::Rewrite: Rewriting %s...\n", strFile);
+                std::string strFileRes = strFile + ".rewrite";
                 { // surround usage of db with extra {}
-                    CDB db(strFile.c_str(), "r");
-                    Db* pdbCopy = new Db(&bitdb.dbenv, 0);
+                    CDB db(dbw, "r");
+                    Db* pdbCopy = new Db(env->dbenv, 0);
 
-                    int ret = pdbCopy->open(NULL,                 // Txn pointer
-                                            strFileRes.c_str(),   // Filename
-                                            "main",    // Logical db name
-                                            DB_BTREE,  // Database type
-                                            DB_CREATE,    // Flags
+                    int ret = pdbCopy->open(NULL,               // Txn pointer
+                                            strFileRes.c_str(), // Filename
+                                            "main",             // Logical db name
+                                            DB_BTREE,           // Database type
+                                            DB_CREATE,          // Flags
                                             0);
-                    if (ret > 0)
-                    {
-                        LogPrintf("Cannot create database file %s\n", strFileRes.c_str());
+                    if (ret > 0) {
+                        LogPrintf("CDB::Rewrite: Can't create database file %s\n", strFileRes);
                         fSuccess = false;
                     }
 
                     Dbc* pcursor = db.GetCursor();
                     if (pcursor)
-                        while (fSuccess)
-                        {
+                        while (fSuccess) {
                             CDataStream ssKey(SER_DISK, CLIENT_VERSION);
                             CDataStream ssValue(SER_DISK, CLIENT_VERSION);
-                            int ret = db.ReadAtCursor(pcursor, ssKey, ssValue, DB_NEXT);
-                            if (ret == DB_NOTFOUND)
-                            {
+                            int ret1 = db.ReadAtCursor(pcursor, ssKey, ssValue);
+                            if (ret1 == DB_NOTFOUND) {
                                 pcursor->close();
                                 break;
-                            }
-                            else if (ret != 0)
-                            {
+                            } else if (ret1 != 0) {
                                 pcursor->close();
                                 fSuccess = false;
                                 break;
                             }
                             if (pszSkip &&
-                                strncmp(&ssKey[0], pszSkip, std::min(ssKey.size(), strlen(pszSkip))) == 0)
+                                strncmp(ssKey.data(), pszSkip, std::min(ssKey.size(), strlen(pszSkip))) == 0)
                                 continue;
-                            if (strncmp(&ssKey[0], "\x07version", 8) == 0)
-                            {
+                            if (strncmp(ssKey.data(), "\x07version", 8) == 0) {
                                 // Update version:
                                 ssValue.clear();
                                 ssValue << CLIENT_VERSION;
                             }
-                            Dbt datKey(&ssKey[0], ssKey.size());
-                            Dbt datValue(&ssValue[0], ssValue.size());
+                            Dbt datKey(ssKey.data(), ssKey.size());
+                            Dbt datValue(ssValue.data(), ssValue.size());
                             int ret2 = pdbCopy->put(NULL, &datKey, &datValue, DB_NOOVERWRITE);
                             if (ret2 > 0)
                                 fSuccess = false;
                         }
-                    if (fSuccess)
-                    {
+                    if (fSuccess) {
                         db.Close();
-                        bitdb.CloseDb(strFile);
+                        env->CloseDb(strFile);
                         if (pdbCopy->close(0))
                             fSuccess = false;
                         delete pdbCopy;
                     }
                 }
-                if (fSuccess)
-                {
-                    Db dbA(&bitdb.dbenv, 0);
+                if (fSuccess) {
+                    Db dbA(env->dbenv, 0);
                     if (dbA.remove(strFile.c_str(), NULL, 0))
                         fSuccess = false;
-                    Db dbB(&bitdb.dbenv, 0);
+                    Db dbB(env->dbenv, 0);
                     if (dbB.rename(strFileRes.c_str(), NULL, strFile.c_str(), 0))
                         fSuccess = false;
                 }
                 if (!fSuccess)
-                    LogPrintf("Rewriting of %s FAILED!\n", strFileRes.c_str());
+                    LogPrintf("CDB::Rewrite: Failed to rewrite database file %s\n", strFileRes);
                 return fSuccess;
             }
         }
@@ -490,105 +476,102 @@ void CDBEnv::Flush(bool fShutdown)
     }
 }
 
-
-//
-// CAddrDB
-//
-
-
-CAddrDB::CAddrDB()
+bool CDB::PeriodicFlush(CWalletDBWrapper& dbw)
 {
-    pathAddr = GetDataDir() / "peers.dat";
+    if (dbw.IsDummy()) {
+        return true;
+    }
+    bool ret = false;
+    CDBEnv *env = dbw.env;
+    const std::string& strFile = dbw.strFile;
+    TRY_LOCK(bitdb.cs_db,lockDb);
+    if (lockDb)
+    {
+        // Don't do this if any databases are in use
+        int nRefCount = 0;
+        std::map<std::string, int>::iterator mit = env->mapFileUseCount.begin();
+        while (mit != env->mapFileUseCount.end())
+        {
+            nRefCount += (*mit).second;
+            mit++;
+        }
+
+        if (nRefCount == 0)
+        {
+            boost::this_thread::interruption_point();
+            std::map<std::string, int>::iterator mi = env->mapFileUseCount.find(strFile);
+            if (mi != env->mapFileUseCount.end())
+            {
+                LogPrint(BCLog::DB, "Flushing %s\n", strFile);
+                int64_t nStart = GetTimeMillis();
+
+                // Flush wallet file so it's self contained
+                env->CloseDb(strFile);
+                env->CheckpointLSN(strFile);
+
+                env->mapFileUseCount.erase(mi++);
+                LogPrint(BCLog::DB, "Flushed %s %dms\n", strFile, GetTimeMillis() - nStart);
+                ret = true;
+            }
+        }
+    }
+
+    return ret;
 }
 
-bool CAddrDB::Write(const CAddrMan& addr)
+
+void CWalletDBWrapper::IncrementUpdateCounter()
 {
-    // Generate random temporary filename
-    unsigned short randv = 0;
-    RAND_bytes((unsigned char *)&randv, sizeof(randv));
-    std::string tmpfn = strprintf("peers.dat.%04x", randv);
-
-    // serialize addresses, checksum data up to that point, then append csum
-    CDataStream ssPeers(SER_DISK, CLIENT_VERSION);
-    ssPeers << FLATDATA(pchMessageStart);
-    ssPeers << addr;
-    uint256 hash = Hash(ssPeers.begin(), ssPeers.end());
-    ssPeers << hash;
-
-    // open temp output file, and associate with CAutoFile
-    boost::filesystem::path pathTmp = GetDataDir() / tmpfn;
-    FILE *file = fopen(pathTmp.string().c_str(), "wb");
-    CAutoFile fileout = CAutoFile(file, SER_DISK, CLIENT_VERSION);
-    if (!fileout)
-        return error("CAddrman::Write() : open failed");
-
-    // Write and commit header, data
-    try {
-        fileout << ssPeers;
-    }
-    catch (std::exception &e) {
-        return error("CAddrman::Write() : I/O error");
-    }
-    FileCommit(fileout);
-    fileout.fclose();
-
-    // replace existing peers.dat, if any, with new peers.dat.XXXX
-    if (!RenameOver(pathTmp, pathAddr))
-        return error("CAddrman::Write() : Rename-into-place failed");
-
-    return true;
+    ++nUpdateCounter;
 }
 
-bool CAddrDB::Read(CAddrMan& addr)
+
+bool CWalletDBWrapper::Rewrite(const char* pszSkip)
 {
-    // open input file, and associate with CAutoFile
-    FILE *file = fopen(pathAddr.string().c_str(), "rb");
-    CAutoFile filein = CAutoFile(file, SER_DISK, CLIENT_VERSION);
-    if (!filein)
-        return error("CAddrman::Read() : open failed");
+    return CDB::Rewrite(*this, pszSkip);
+}
 
-    // use file size to size memory buffer
-    int fileSize = boost::filesystem::file_size(pathAddr);
-    int dataSize = fileSize - sizeof(uint256);
-    // Don't try to resize to a negative number if file is small
-    if ( dataSize < 0 ) dataSize = 0;
-    vector<unsigned char> vchData;
-    vchData.resize(dataSize);
-    uint256 hashIn;
-
-    // read data and checksum from file
-    try {
-        filein.read((char *)&vchData[0], dataSize);
-        filein >> hashIn;
+bool CWalletDBWrapper::Backup(const std::string& strDest)
+{
+    if (IsDummy()) {
+        return false;
     }
-    catch (std::exception &e) {
-        return error("CAddrman::Read() 2 : I/O error or stream data corrupted");
+    while (true)
+    {
+        {
+            LOCK(env->cs_db);
+            if (!env->mapFileUseCount.count(strFile) || env->mapFileUseCount[strFile] == 0)
+            {
+                // Flush log data to the dat file
+                env->CloseDb(strFile);
+                env->CheckpointLSN(strFile);
+                env->mapFileUseCount.erase(strFile);
+
+                // Copy wallet file
+                fs::path pathSrc = GetDataDir() / strFile;
+                fs::path pathDest(strDest);
+                if (fs::is_directory(pathDest))
+                    pathDest /= strFile;
+
+                try {
+                    fs::copy_file(pathSrc, pathDest, fs::copy_option::overwrite_if_exists);
+                    LogPrintf("copied %s to %s\n", strFile, pathDest.string());
+                    return true;
+                } catch (const fs::filesystem_error& e) {
+                    LogPrintf("error copying %s to %s - %s\n", strFile, pathDest.string(), e.what());
+                    return false;
+                }
+            }
+        }
+        MilliSleep(100);
     }
-    filein.fclose();
+    return false;
+}
 
-    CDataStream ssPeers(vchData, SER_DISK, CLIENT_VERSION);
-
-    // verify stored checksum matches input data
-    uint256 hashTmp = Hash(ssPeers.begin(), ssPeers.end());
-    if (hashIn != hashTmp)
-        return error("CAddrman::Read() : checksum mismatch; data corrupted");
-
-    unsigned char pchMsgTmp[4];
-    try {
-        // de-serialize file header (pchMessageStart magic number) and
-        ssPeers >> FLATDATA(pchMsgTmp);
-
-        // verify the network matches ours
-        if (memcmp(pchMsgTmp, pchMessageStart, sizeof(pchMsgTmp)))
-            return error("CAddrman::Read() : invalid network magic number");
-
-        // de-serialize address data into one CAddrMan object
-        ssPeers >> addr;
+void CWalletDBWrapper::Flush(bool shutdown)
+{
+    if (!IsDummy()) {
+        env->Flush(shutdown);
     }
-    catch (std::exception &e) {
-        return error("CAddrman::Read() : I/O error or stream data corrupted");
-    }
-
-    return true;
 }
 

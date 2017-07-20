@@ -5,7 +5,7 @@
 
 #include "chain/checkpoints.h"
 #include "init.h"
-#include "p2p/net.h"
+#include "p2p/connman.h"
 #include "tx/txdb-leveldb.h"
 #include "uint256.h"
 #include "ui_interface.h"
@@ -13,6 +13,7 @@
 #include "wallet/walletdb.h"
 #include "chain/chain.h"
 #include "rpc/bitcoinrpc.h"
+#include "noui.h"
 
 #include "util/util.h"
 #include "util/utilexceptions.h"
@@ -43,6 +44,7 @@
 using namespace std;
 using namespace boost;
 
+std::unique_ptr<CConnman> pconnman;
 CWallet* pwalletMain;
 Checkpoints* pcheckpointMain;
 ServiceFlags nLocalServices = NODE_NETWORK;
@@ -683,7 +685,6 @@ bool AppInit2()
 
 
 static const int MAX_OUTBOUND_CONNECTIONS = 1000;
-static CNode* pnodeLocalHost = NULL;
 
 void StartNode()
 {
@@ -696,12 +697,6 @@ void StartNode()
             // initialize semaphore
             int nMaxOutbound = MAX_OUTBOUND_CONNECTIONS;
             semOutbound = new CSemaphore(nMaxOutbound);
-        }
-
-        if (pnodeLocalHost == NULL)
-        {
-            NodeId id = GetNewNodeId();
-            pnodeLocalHost = new CNode(id, nLocalServices, pindexBest->nHeight, INVALID_SOCKET, CAddress(CService("127.0.0.1", 0), nLocalServices));
         }
 
         if (!fDiscover)
@@ -766,43 +761,18 @@ void StartNode()
         // Start threads
         //
 
-        if (GetBoolArg("-dnsseed", true))
-        {
-            boost::thread* DNSAddressSeed = new boost::thread(&ThreadDNSAddressSeed);
-            ecc_threads.add_thread(DNSAddressSeed);
-        }
-
         // Map ports with UPnP
         if (fUseUPnP)
             MapPort();
 
-        // Send and receive from sockets, accept connections
-        boost::thread* SocketHandler = new boost::thread(&ThreadSocketHandler);
-        ecc_threads.add_thread(SocketHandler);
-
-        // Initiate outbound connections from -addnode
-        boost::thread* OpenAddedConnections = new boost::thread(&ThreadOpenAddedConnections);
-        ecc_threads.add_thread(OpenAddedConnections);
-
-        // Initiate outbound connections
-        boost::thread* OpenConnections = new boost::thread(&ThreadOpenConnections);
-        ecc_threads.add_thread(OpenConnections);
-
-        // Process messages
-        boost::thread* MessageHandler = new boost::thread(&ThreadMessageHandler);
-        ecc_threads.add_thread(MessageHandler);
-
-        // Dump network addresses
-        boost::thread* DumpAddress = new boost::thread(&ThreadDumpAddress);
-        ecc_threads.add_thread(DumpAddress);
 
         // Mine proof-of-stake blocks in the background
         if (!GetBoolArg("-staking", false))
             LogPrintf("Staking disabled\n");
         else
         {
-            boost::thread* StakeMinter_Scrypt = new boost::thread(boost::bind(&ThreadStakeMinter_Scrypt, pwalletMain));
-            ecc_threads.add_thread(StakeMinter_Scrypt);
+        //    boost::thread* StakeMinter_Scrypt = new boost::thread(boost::bind(&ThreadStakeMinter_Scrypt, pwalletMain));
+        //    ecc_threads.add_thread(StakeMinter_Scrypt);
         }
 }
 

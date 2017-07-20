@@ -259,32 +259,6 @@ void ThreadOpenConnections2()
     }
 }
 
-void ThreadDumpAddress2()
-{
-    while (!fShutdown)
-    {
-        int64_t nStart = GetTimeMillis();
-        CAddrDB adb;
-        adb.Write(addrman);
-        LogPrintf("Flushed %d addresses to peers.dat  %d ms\n",
-               addrman.size(), GetTimeMillis() - nStart);
-        MilliSleep(600000);
-    }
-}
-
-void ThreadDumpAddress()
-{
-    try
-    {
-        ThreadDumpAddress2();
-    }
-    catch (std::exception& e) {
-        PrintException(&e, "ThreadDumpAddress()");
-    }
-    LogPrintf("ThreadDumpAddress exited\n");
-}
-
-
 
 // DNS seeds
 // Each pair gives a source name and a seed name.

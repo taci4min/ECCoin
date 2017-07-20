@@ -8,12 +8,9 @@
 
 #include "wallet/wallet.h"
 #include "chain/checkpoints.h"
+#include "p2p/connman.h"
 
-namespace boost
-{
-class thread_group;
-} // namespace boost
-
+extern std::unique_ptr<CConnman> pconnman;
 extern CWallet* pwalletMain;
 extern Checkpoints* pcheckpointMain;
 extern ServiceFlags nLocalServices;

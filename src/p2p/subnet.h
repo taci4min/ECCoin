@@ -32,12 +32,14 @@ class CSubNet
         friend bool operator!=(const CSubNet& a, const CSubNet& b);
         friend bool operator<(const CSubNet& a, const CSubNet& b);
 
-        IMPLEMENT_SERIALIZE
-        (
+        ADD_SERIALIZE_METHODS
+
+        template <typename Stream, typename Operation>
+        inline void SerializationOp(Stream& s, Operation ser_action) {
             READWRITE(network);
             READWRITE(FLATDATA(netmask));
             READWRITE(FLATDATA(valid));
-        )
+        }
 };
 
 
