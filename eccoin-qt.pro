@@ -262,10 +262,12 @@ HEADERS += \
     src/p2p/addrdb.h \
     src/crypto/common.h \
     src/crypto/crypto_endian.h \
-    src/crypto/byteswap.h
+    src/crypto/byteswap.h \
+    src/prevector.h
 
 
 SOURCES += \
+    src/wallet/db.cpp \
     src/fs.cpp \
     src/util/util.cpp \
     src/util/utiltime.cpp \
@@ -305,7 +307,6 @@ SOURCES += \
     src/mining/kernel.cpp \
     src/mining/miner.cpp \
     src/tx/disk.cpp \
-    src/wallet/db.cpp \
     src/crypto/pbkdf2.cpp \
     src/wallet/crypter.cpp \
     src/tx/outpoint.cpp \

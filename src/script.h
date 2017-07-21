@@ -291,6 +291,13 @@ public:
     }
 
 
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
+        READWRITE(*this);
+    }
+
     //explicit CScript(char b) is not portable.  Use 'signed char' or 'unsigned char'.
     explicit CScript(signed char b)        { operator<<(b); }
     explicit CScript(short b)              { operator<<(b); }

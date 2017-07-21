@@ -1,76 +1,68 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2012 The Bitcoin developers
-// Distributed under the MIT/X11 software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
-#ifndef BITCOIN_DB_H
-#define BITCOIN_DB_H
+#ifndef BITCOIN_WALLET_DB_H
+#define BITCOIN_WALLET_DB_H
 
-#include "global.h"
-#include "main.h"
+#include "clientversion.h"
+#include "fs.h"
+#include "serialize.h"
+#include "sync.h"
+#include "version.h"
 
+#include <atomic>
 #include <map>
 #include <string>
 #include <vector>
+#include <openssl/crypto.h>
 
 #include <db_cxx.h>
 
 #ifdef WIN32
-#define MSG_NOSIGNAL        0
-#define MSG_DONTWAIT        0
 #ifndef S_IRUSR
 #define S_IRUSR             0400
 #define S_IWUSR             0200
 #endif
-#else
-#define MAX_PATH            1024
 #endif
 
-class CAddress;
-class CAddrMan;
-class CDiskBlockIndex;
-class CDiskTxPos;
-class CMasterKey;
-class COutPoint;
-class CTxIndex;
-class CWallet;
-class CWalletTx;
 
+static const unsigned int DEFAULT_WALLET_DBLOGSIZE = 100;
+static const bool DEFAULT_WALLET_PRIVDB = true;
 extern unsigned int nWalletDBUpdated;
-
-void ThreadFlushWalletDB(void* parg);
-
 
 class CDBEnv
 {
 private:
-    bool fDetachDB;
     bool fDbEnvInit;
     bool fMockDb;
-    boost::filesystem::path pathEnv;
+    // Don't change into fs::path, as that can result in
+    // shutdown problems/crashes caused by a static initialized internal pointer.
     std::string strPath;
 
     void EnvShutdown();
 
 public:
     mutable CCriticalSection cs_db;
-    DbEnv dbenv;
+    DbEnv *dbenv;
     std::map<std::string, int> mapFileUseCount;
     std::map<std::string, Db*> mapDb;
 
     CDBEnv();
     ~CDBEnv();
-    void MakeMock();
-    bool IsMock() { return fMockDb; };
+    void Reset();
 
-    /*
+    void MakeMock();
+    bool IsMock() { return fMockDb; }
+
+    /**
      * Verify that database file strFile is OK. If it is not,
      * call the callback to try to recover.
      * This must be called BEFORE strFile is opened.
      * Returns true if strFile is OK.
      */
-    enum VerifyResult { VERIFY_OK, RECOVER_OK, RECOVER_FAIL };
-    VerifyResult Verify(std::string strFile, bool (*recoverFunc)(CDBEnv& dbenv, std::string strFile));
-    /*
+    enum VerifyResult { VERIFY_OK,
+                        RECOVER_OK,
+                        RECOVER_FAIL };
+    typedef bool (*recoverFunc_type)(const std::string& strFile, std::string& out_backup_filename);
+    VerifyResult Verify(const std::string& strFile, recoverFunc_type recoverFunc, std::string& out_backup_filename);
+    /**
      * Salvage data from a file that Verify says is bad.
      * fAggressive sets the DB_AGGRESSIVE flag (see berkeley DB->verify() method documentation).
      * Appends binary key/value pairs to vResult, returns true if successful.
@@ -78,22 +70,19 @@ public:
      * for huge databases.
      */
     typedef std::pair<std::vector<unsigned char>, std::vector<unsigned char> > KeyValPair;
-    bool Salvage(std::string strFile, bool fAggressive, std::vector<KeyValPair>& vResult);
+    bool Salvage(const std::string& strFile, bool fAggressive, std::vector<KeyValPair>& vResult);
 
-    bool Open(boost::filesystem::path pathEnv_);
+    bool Open(const fs::path& path);
     void Close();
     void Flush(bool fShutdown);
-    void CheckpointLSN(std::string strFile);
-    void SetDetach(bool fDetachDB_) { fDetachDB = fDetachDB_; }
-    bool GetDetach() { return fDetachDB; }
+    void CheckpointLSN(const std::string& strFile);
 
     void CloseDb(const std::string& strFile);
-    bool RemoveDb(const std::string& strFile);
 
-    DbTxn *TxnBegin(int flags=DB_TXN_WRITE_NOSYNC)
+    DbTxn* TxnBegin(int flags = DB_TXN_WRITE_NOSYNC)
     {
         DbTxn* ptxn = NULL;
-        int ret = dbenv.txn_begin(NULL, &ptxn, flags);
+        int ret = dbenv->txn_begin(NULL, &ptxn, flags);
         if (!ptxn || ret != 0)
             return NULL;
         return ptxn;
@@ -155,10 +144,6 @@ private:
     bool IsDummy() { return env == nullptr; }
 };
 
-void memory_cleanse(void *ptr, size_t len)
-{
-    OPENSSL_cleanse(ptr, len);
-}
 
 /** RAII class that provides access to a Berkeley database */
 class CDB
@@ -166,21 +151,26 @@ class CDB
 protected:
     Db* pdb;
     std::string strFile;
-    DbTxn *activeTxn;
+    DbTxn* activeTxn;
     bool fReadOnly;
     bool fFlushOnClose;
     CDBEnv *env;
 
 public:
     explicit CDB(CWalletDBWrapper& dbw, const char* pszMode = "r+", bool fFlushOnCloseIn=true);
-
     ~CDB() { Close(); }
-    void Close();
 
+    void Flush();
+    void Close();
+    static bool Recover(const std::string& filename, void *callbackDataIn, bool (*recoverKVcallback)(void* callbackData, CDataStream ssKey, CDataStream ssValue), std::string& out_backup_filename);
 
     /* flush the wallet passively (TRY_LOCK)
        ideal to be called periodically */
     static bool PeriodicFlush(CWalletDBWrapper& dbw);
+    /* verifies the database environment */
+    static bool VerifyEnvironment(const std::string& walletFile, const fs::path& dataDir, std::string& errorStr);
+    /* verifies the database file */
+    static bool VerifyDatabaseFile(const std::string& walletFile, const fs::path& dataDir, std::string& warningStr, std::string& errorStr, CDBEnv::recoverFunc_type recoverFunc);
 
 private:
     CDB(const CDB&);
@@ -203,7 +193,7 @@ public:
         Dbt datValue;
         datValue.set_flags(DB_DBT_MALLOC);
         int ret = pdb->get(activeTxn, &datKey, &datValue, 0);
-        memory_cleanse(datKey.get_data(), datKey.get_size());
+        OPENSSL_cleanse(datKey.get_data(), datKey.get_size());
         bool success = false;
         if (datValue.get_data() != NULL) {
             // Unserialize value
@@ -216,7 +206,7 @@ public:
             }
 
             // Clear and free memory
-            memory_cleanse(datValue.get_data(), datValue.get_size());
+            OPENSSL_cleanse(datValue.get_data(), datValue.get_size());
             free(datValue.get_data());
         }
         return ret == 0 && success;
@@ -246,8 +236,8 @@ public:
         int ret = pdb->put(activeTxn, &datKey, &datValue, (fOverwrite ? 0 : DB_NOOVERWRITE));
 
         // Clear memory in case it was a private key
-        memory_cleanse(datKey.get_data(), datKey.get_size());
-        memory_cleanse(datValue.get_data(), datValue.get_size());
+        OPENSSL_cleanse(datKey.get_data(), datKey.get_size());
+        OPENSSL_cleanse(datValue.get_data(), datValue.get_size());
         return (ret == 0);
     }
 
@@ -269,7 +259,7 @@ public:
         int ret = pdb->del(activeTxn, &datKey, 0);
 
         // Clear memory
-        memory_cleanse(datKey.get_data(), datKey.get_size());
+        OPENSSL_cleanse(datKey.get_data(), datKey.get_size());
         return (ret == 0 || ret == DB_NOTFOUND);
     }
 
@@ -289,7 +279,7 @@ public:
         int ret = pdb->exists(activeTxn, &datKey, 0);
 
         // Clear memory
-        memory_cleanse(datKey.get_data(), datKey.get_size());
+        OPENSSL_cleanse(datKey.get_data(), datKey.get_size());
         return (ret == 0);
     }
 
@@ -304,21 +294,17 @@ public:
         return pcursor;
     }
 
-    int ReadAtCursor(Dbc* pcursor, CDataStream& ssKey, CDataStream& ssValue, unsigned int fFlags=DB_NEXT)
+    int ReadAtCursor(Dbc* pcursor, CDataStream& ssKey, CDataStream& ssValue, bool setRange = false)
     {
         // Read at cursor
         Dbt datKey;
-        if (fFlags == DB_SET || fFlags == DB_SET_RANGE || fFlags == DB_GET_BOTH || fFlags == DB_GET_BOTH_RANGE)
-        {
-            datKey.set_data(&ssKey[0]);
+        unsigned int fFlags = DB_NEXT;
+        if (setRange) {
+            datKey.set_data(ssKey.data());
             datKey.set_size(ssKey.size());
+            fFlags = DB_SET_RANGE;
         }
         Dbt datValue;
-        if (fFlags == DB_GET_BOTH || fFlags == DB_GET_BOTH_RANGE)
-        {
-            datValue.set_data(&ssValue[0]);
-            datValue.set_size(ssValue.size());
-        }
         datKey.set_flags(DB_DBT_MALLOC);
         datValue.set_flags(DB_DBT_MALLOC);
         int ret = pcursor->get(&datKey, &datValue, fFlags);
@@ -336,8 +322,8 @@ public:
         ssValue.write((char*)datValue.get_data(), datValue.get_size());
 
         // Clear and free memory
-        memset(datKey.get_data(), 0, datKey.get_size());
-        memset(datValue.get_data(), 0, datValue.get_size());
+        OPENSSL_cleanse(datKey.get_data(), datKey.get_size());
+        OPENSSL_cleanse(datValue.get_data(), datValue.get_size());
         free(datKey.get_data());
         free(datValue.get_data());
         return 0;
@@ -384,7 +370,7 @@ public:
         return Write(std::string("version"), nVersion);
     }
 
-    bool static Rewrite(const std::string& strFile, const char* pszSkip = NULL);
+    bool static Rewrite(CWalletDBWrapper& dbw, const char* pszSkip = NULL);
 };
 
-#endif // BITCOIN_DB_H
+#endif // BITCOIN_WALLET_DB_H

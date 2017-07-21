@@ -59,12 +59,8 @@ public:
 
 
 /** Access to the wallet database (wallet.dat) */
-class CWalletDB : public CDB
+class CWalletDB
 {
-public:
-    CWalletDB(CWalletDBWrapper& dbw, const char* pszMode = "r+", bool fFlushOnClose = true) : batch(dbw, pszMode, fFlushOnClose), m_dbw(dbw)
-    {
-    }
 private:
     CWalletDB(const CWalletDB&);
     void operator=(const CWalletDB&);
@@ -93,6 +89,13 @@ private:
     }
 
 public:
+    CWalletDB(CWalletDBWrapper& dbw, const char* pszMode = "r+", bool fFlushOnClose = true) :
+        batch(dbw, pszMode, fFlushOnClose),
+        m_dbw(dbw)
+    {
+
+    }
+
     bool WriteName(const std::string& strAddress, const std::string& strName);
 
     bool EraseName(const std::string& strAddress);
@@ -157,7 +160,7 @@ public:
 
     bool ReadBestBlock(CBlockLocator& locator)
     {
-        return Read(std::string("bestblock"), locator);
+        return batch.Read(std::string("bestblock"), locator);
     }
 
     bool WriteOrderPosNext(int64_t nOrderPosNext)
@@ -174,7 +177,7 @@ public:
 
     bool ReadPool(int64_t nPool, CKeyPool& keypool)
     {
-        return Read(std::make_pair(std::string("pool"), nPool), keypool);
+        return batch.Read(std::make_pair(std::string("pool"), nPool), keypool);
     }
 
     bool WritePool(int64_t nPool, const CKeyPool& keypool)
