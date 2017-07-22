@@ -10,11 +10,12 @@
 #include "tx/inpoint.h"
 #include "tx/merkletx.h"
 #include "uint256.h"
+#include "arith_uint256.h"
 
 
 /// Program constants ///
-static const uint256 hashGenesisBlock = uint256S("0xa60ac43c88dbc44b826cf315352a8a7b373d2af8b6e1c4c4a0638859c5e9ecd1");
-static const uint256 hashGenesisBlockTestNet = uint256S("0xa60ac43c88dbc44b826cf315352a8a7b373d2af8b6e1c4c4a0638859c5e9ecd1");
+static const uint256 hashGenesisBlock = uint256S("a60ac43c88dbc44b826cf315352a8a7b373d2af8b6e1c4c4a0638859c5e9ecd1");
+static const uint256 hashGenesisBlockTestNet = uint256S("a60ac43c88dbc44b826cf315352a8a7b373d2af8b6e1c4c4a0638859c5e9ecd1");
 static const int LAST_POW_BLOCK = 86400;
 static const unsigned int MAX_BLOCK_SIZE = 1000000;
 static const unsigned int MAX_BLOCK_SIZE_GEN = MAX_BLOCK_SIZE/2;
@@ -35,10 +36,10 @@ extern std::map<uint256, std::set<uint256> > mapOrphanTransactionsByPrev;
 extern std::map<uint256, CBlockIndex*> mapBlockIndex;
 extern int nCoinbaseMaturity;
 extern unsigned int nTransactionsUpdated;
-extern CBigNum bnProofOfWorkLimit;
-extern CBigNum bnProofOfStakeLimit;
-extern CBigNum bnProofOfWorkLimitTestNet;
-extern CBigNum bnProofOfStakeLimitTestNet;
+extern uint256 bnProofOfWorkLimit;
+extern uint256 bnProofOfStakeLimit;
+extern uint256 bnProofOfWorkLimitTestNet;
+extern uint256 bnProofOfStakeLimitTestNet;
 extern unsigned int nStakeTargetSpacing;
 extern unsigned int nTargetSpacing;
 extern unsigned int nStakeMinAge; // 2 hours
@@ -48,8 +49,8 @@ extern unsigned int nModifierIntervalSecond;
 extern CBlockIndex* pindexGenesisBlock;
 extern int64_t nBestTimeReceived;
 extern int64_t nChainStartTime;
-extern uint256 nBestChainTrust;
-extern uint256 nBestInvalidTrust;
+extern arith_uint256 nBestChainTrust;
+extern arith_uint256 nBestInvalidTrust;
 
 
 #endif // TYPEDEF_H

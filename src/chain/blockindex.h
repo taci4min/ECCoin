@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "tx/inpoint.h"
 #include "tx/outpoint.h"
+#include "arith_uint256.h"
 
 
 class COutPoint;
@@ -30,7 +31,7 @@ public:
     CBlockIndex* pskip;
     unsigned int nFile;
     unsigned int nBlockPos;
-    uint256 nChainTrust; // ppcoin: trust score of block chain
+    arith_uint256 nChainTrust; // ppcoin: trust score of block chain
     int nHeight;
 
     int64_t nMint;
@@ -73,7 +74,7 @@ public:
     CBlock GetBlockHeader() const;
     uint256 GetBlockHash() const;
     int64_t GetBlockIndexTime() const;
-    uint256 GetBlockTrust() const;
+    arith_uint256 GetBlockTrust() const;
     bool IsInMainChain() const;
     bool CheckIndex() const;
     int64_t GetPastTimeLimit() const;
@@ -155,7 +156,7 @@ public:
         {
             const_cast<CDiskBlockIndex*>(this)->prevoutStake.SetNull();
             const_cast<CDiskBlockIndex*>(this)->nStakeTime = 0;
-            const_cast<CDiskBlockIndex*>(this)->hashProofOfStake = 0;
+            const_cast<CDiskBlockIndex*>(this)->hashProofOfStake = uint256();
         }
 
         // block header

@@ -263,7 +263,8 @@ HEADERS += \
     src/crypto/common.h \
     src/crypto/crypto_endian.h \
     src/crypto/byteswap.h \
-    src/prevector.h
+    src/prevector.h \
+    src/arith_uint256.h
 
 
 SOURCES += \
@@ -330,7 +331,8 @@ SOURCES += \
     src/threads.cpp \
     src/p2p/connman.cpp \
     src/p2p/addrdb.cpp \
-    src/uint256.cpp
+    src/uint256.cpp \
+    src/arith_uint256.cpp
 
 
 CODECFORTR = UTF-8

@@ -174,7 +174,7 @@ Value getnewaddress(const Array& params, bool fHelp)
 
 CBitcoinAddress GetAccountAddress(string strAccount, bool bForceNew=false)
 {
-    CWalletDB walletdb(pwalletMain->strWalletFile);
+    CWalletDB walletdb(pwalletMain->GetDBHandle());
 
     CAccount account;
     walletdb.ReadAccount(strAccount, account);
@@ -551,7 +551,7 @@ int64_t GetAccountBalance(CWalletDB& walletdb, const string& strAccount, int nMi
 
 int64_t GetAccountBalance(const string& strAccount, int nMinDepth)
 {
-    CWalletDB walletdb(pwalletMain->strWalletFile);
+    CWalletDB walletdb(pwalletMain->GetDBHandle());
     return GetAccountBalance(walletdb, strAccount, nMinDepth);
 }
 
@@ -629,8 +629,8 @@ Value movecmd(const Array& params, bool fHelp)
     if (params.size() > 4)
         strComment = params[4].get_str();
 
-    CWalletDB walletdb(pwalletMain->strWalletFile);
-    if (!walletdb.TxnBegin())
+    CWalletDB walletdb(pwalletMain->GetDBHandle());
+    if (!walletdb.getBatch()->TxnBegin())
         throw JSONRPCError(RPC_DATABASE_ERROR, "database error");
 
     int64_t nNow = GetAdjustedTime();
@@ -655,7 +655,7 @@ Value movecmd(const Array& params, bool fHelp)
     credit.strComment = strComment;
     walletdb.WriteAccountingEntry(credit);
 
-    if (!walletdb.TxnCommit())
+    if (!walletdb.getBatch()->TxnCommit())
         throw JSONRPCError(RPC_DATABASE_ERROR, "database error");
 
     return true;
@@ -1227,7 +1227,7 @@ Value listaccounts(const Array& params, bool fHelp)
     }
 
     list<CAccountingEntry> acentries;
-    CWalletDB(pwalletMain->strWalletFile).ListAccountCreditDebit("*", acentries);
+    CWalletDB(pwalletMain->GetDBHandle()).ListAccountCreditDebit("*", acentries);
     BOOST_FOREACH(const CAccountingEntry& entry, acentries)
         mapAccountBalances[entry.strAccount] += entry.nCreditDebit;
 
@@ -1250,7 +1250,7 @@ Value listsinceblock(const Array& params, bool fHelp)
 
     if (params.size() > 0)
     {
-        uint256 blockId = 0;
+        uint256 blockId = uint256();
 
         blockId.SetHex(params[0].get_str());
         pindex = CBlockLocator(blockId).GetBlockIndex();
@@ -1291,7 +1291,7 @@ Value listsinceblock(const Array& params, bool fHelp)
              block && block->nHeight > target_height;
              block = block->pprev)  { }
 
-        lastblock = block ? block->GetBlockHash() : 0;
+        lastblock = block ? block->GetBlockHash() : uint256();
     }
 
     Object ret;
@@ -1317,7 +1317,7 @@ Value gettransaction(const Array& params, bool fHelp)
     {
         const CWalletTx& wtx = pwalletMain->mapWallet[hash];
 
-        TxToJSON(wtx, 0, entry);
+        TxToJSON(wtx, uint256(), entry);
 
         int64_t nCredit = wtx.GetCredit();
         int64_t nDebit = wtx.GetDebit();
@@ -1337,11 +1337,11 @@ Value gettransaction(const Array& params, bool fHelp)
     else
     {
         CTransaction tx;
-        uint256 hashBlock = 0;
+        uint256 hashBlock = uint256();
         if (GetTransaction(hash, tx, hashBlock))
         {
-            TxToJSON(tx, 0, entry);
-            if (hashBlock == 0)
+            TxToJSON(tx, uint256(), entry);
+            if (hashBlock == uint256())
                 entry.push_back(Pair("confirmations", 0));
             else
             {

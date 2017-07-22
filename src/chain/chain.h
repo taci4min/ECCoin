@@ -181,46 +181,4 @@ public:
     bool EraseIndexHeader(const CDiskBlockIndex& blockindex);
 };
 
-
-///
-/// This class is a metadata for the chain
-/// It only holds enough information to be able to look up the CBlockIndex
-///     for the block with the hash found in this class. This should replace the
-///     CBlockIndex chain in memory. This map does however store the theorectical
-///     height each of a block index
-///
-/// it is not currently in use. it will be implented and replace the normal blockchain index map when the map starts to use too much memory for most clients (cut off is 900 MB)
-class CHeaderChain
-{
-public:
-
-    //fields
-    uint256 hashBlock;
-    uint256 hashPrev;
-    uint256 hashNext;
-    unsigned int nFile;
-    unsigned int nBlockPos;
-    int nHeight;
-    CBlockIndex* pindex;
-
-    //functions
-    CHeaderChain();
-    IMPLEMENT_SERIALIZE
-    (
-        READWRITE(hashBlock);
-        READWRITE(hashPrev);
-        READWRITE(hashNext);
-        READWRITE(nFile);
-        READWRITE(nBlockPos);
-        READWRITE(nHeight);
-    )
-    uint256 GetBlockHash() const;
-    CBlockIndex* getBlockIndex();
-    void SetNull();
-    bool WriteToDisk(unsigned int& nFileRet, unsigned int& nBlockPosRet);
-    bool ReadFromDisk(unsigned int nFile, unsigned int nBlockPos, bool fReadTransactions=true);
-    std::string ToString() const;
-    void print() const;
-};
-
 #endif // CHEADERCHAIN_H

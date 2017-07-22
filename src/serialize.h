@@ -39,6 +39,7 @@ class CAutoFile;
 class CDataStream;
 class CScript;
 class CVectorWriter;
+class CSizeComputer;
 
 
 static const unsigned int MAX_SIZE = 0x02000000;
@@ -156,14 +157,16 @@ inline float ser_uint32_to_float(uint32_t y)
 // i.e. anything that supports .read(char*, size_t) and .write(char*, size_t)
 //
 
-class CSizeComputer;
-
 enum
 {
     // primary actions
     SER_NETWORK         = (1 << 0),
     SER_DISK            = (1 << 1),
     SER_GETHASH         = (1 << 2),
+
+    // modifiers
+    SER_SKIPSIG         = (1 << 16),
+    SER_BLOCKHEADERONLY = (1 << 17),
 };
 
 #define READWRITE(obj)        (::SerReadWrite(s, (obj), ser_action))
@@ -232,7 +235,7 @@ inline unsigned int GetSizeOfCompactSize(uint64_t nSize)
     else                         return sizeof(unsigned char) + sizeof(uint64_t);
 }
 
-inline void WriteCompactSize(CSizeComputer& os, uint64_t nSize);
+//inline void WriteCompactSize(CSizeComputer& os, uint64_t nSize);
 
 template<typename Stream>
 void WriteCompactSize(Stream& os, uint64_t nSize)
@@ -851,6 +854,53 @@ struct ser_streamplaceholder
     int nVersion;
 };
 
+/* ::GetSerializeSize implementations
+ *
+ * Computing the serialized size of objects is done through a special stream
+ * object of type CSizeComputer, which only records the number of bytes written
+ * to it.
+ *
+ * If your Serialize or SerializationOp method has non-trivial overhead for
+ * serialization, it may be worthwhile to implement a specialized version for
+ * CSizeComputer, which uses the s.seek() method to record bytes that would
+ * be written instead.
+ */
+class CSizeComputer
+{
+protected:
+    size_t nSize;
+
+    const int nType;
+    const int nVersion;
+public:
+    CSizeComputer(int nTypeIn, int nVersionIn) : nSize(0), nType(nTypeIn), nVersion(nVersionIn) {}
+
+    void write(const char *psz, size_t _nSize)
+    {
+        this->nSize += _nSize;
+    }
+
+    /** Pretend _nSize bytes are written, without specifying them. */
+    void seek(size_t _nSize)
+    {
+        this->nSize += _nSize;
+    }
+
+    template<typename T>
+    CSizeComputer& operator<<(const T& obj)
+    {
+        ::Serialize(*this, obj);
+        return (*this);
+    }
+
+    size_t size() const {
+        return nSize;
+    }
+
+    int GetVersion() const { return nVersion; }
+    int GetType() const { return nType; }
+};
+
 template<typename Stream>
 void SerializeMany(Stream& s)
 {
@@ -1293,18 +1343,17 @@ public:
 class CAutoFile
 {
 private:
-    // Disallow copies
-    CAutoFile(const CAutoFile&);
-    CAutoFile& operator=(const CAutoFile&);
-
-    const int nType;
-    const int nVersion;
-
+    int nVersion;
     FILE* file;
 
 public:
-    CAutoFile(FILE* filenew, int nTypeIn, int nVersionIn) : nType(nTypeIn), nVersion(nVersionIn)
+    int nType;
+
+
+    CAutoFile(FILE* filenew, int nTypeIn, int nVersionIn)
     {
+        nType = nTypeIn;
+        nVersion = nVersionIn;
         file = filenew;
     }
 
@@ -1312,6 +1361,9 @@ public:
     {
         fclose();
     }
+
+    CAutoFile(const CAutoFile&);
+    CAutoFile& operator=(const CAutoFile&);
 
     void fclose()
     {
@@ -1392,5 +1444,18 @@ public:
         return (*this);
     }
 };
+
+template <typename T>
+size_t GetSerializeSize(const T& t, int nType, int nVersion = 0)
+{
+    return (CSizeComputer(nType, nVersion) << t).size();
+}
+
+template <typename S, typename T>
+size_t GetSerializeSize(const S& s, const T& t)
+{
+    return (CSizeComputer(s.GetType(), s.GetVersion()) << t).size();
+}
+
 
 #endif

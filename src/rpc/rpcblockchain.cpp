@@ -3,6 +3,7 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "arith_uint256.h"
 #include "main.h"
 #include "bitcoinrpc.h"
 #include "tx/mempool.h"
@@ -131,7 +132,7 @@ Object blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool fPri
             Object entry;
 
             entry.push_back(Pair("txid", tx.GetHash().GetHex()));
-            TxToJSON(tx, 0, entry);
+            TxToJSON(tx, ArithToUint256(arith_uint256(0)), entry);
 
             txinfo.push_back(entry);
         }
@@ -238,7 +239,7 @@ Value getblock(const Array& params, bool fHelp)
             "Returns details of a block with given block-hash.");
 
     std::string strHash = params[0].get_str();
-    uint256 hash(strHash);
+    uint256 hash(uint256S(strHash));
 
     if (mapBlockIndex.count(hash) == 0)
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");

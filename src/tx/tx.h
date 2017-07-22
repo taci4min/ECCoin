@@ -296,8 +296,6 @@ struct CMutableTransaction
  * - unsigned char flags (!= 0)
  * - std::vector<CTxIn> vin
  * - std::vector<CTxOut> vout
- * - if (flags & 1):
- *   - CTxWitness wit;
  * - uint32_t nLockTime
  */
 template<typename Stream, typename TxType>
@@ -359,11 +357,20 @@ public:
         SerializeTransaction(*this, s);
     }
 
+    template <typename Stream>
+    inline void Unserialize(Stream& s) {
+        UnserializeTransaction(*this, s);
+    }
+
     /** This deserializing constructor is provided instead of an Unserialize method.
      *  Unserialize is not possible, since it would require overwriting const fields. */
     template <typename Stream>
     CTransaction(deserialize_type, Stream& s) : CTransaction(CMutableTransaction(deserialize, s)) {}
 
+    unsigned int GetTotalSize() const
+    {
+        return ::GetSerializeSize(*this, SER_NETWORK, PROTOCOL_VERSION);
+    }
 
     void SetNull();
     bool IsNull() const;

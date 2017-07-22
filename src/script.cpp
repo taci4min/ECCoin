@@ -10,6 +10,7 @@
 using namespace std;
 using namespace boost;
 
+#include "arith_uint256.h"
 #include "script.h"
 #include "keystore.h"
 #include "bignum.h"
@@ -1070,7 +1071,7 @@ uint256 SignatureHash(CScript scriptCode, const CTransaction& txTo, unsigned int
     if (nIn >= txTo.vin.size())
     {
         LogPrintf("ERROR: SignatureHash() : nIn=%d out of range\n", nIn);
-        return 1;
+        return ArithToUint256(arith_uint256(1));
     }
     CTransaction txTmp(txTo);
 
@@ -1101,7 +1102,7 @@ uint256 SignatureHash(CScript scriptCode, const CTransaction& txTo, unsigned int
         if (nOut >= txTmp.vout.size())
         {
             LogPrintf("ERROR: SignatureHash() : nOut=%d out of range\n", nOut);
-            return 1;
+            return ArithToUint256(arith_uint256(1));
         }
         txTmp.vout.resize(nOut+1);
         for (unsigned int i = 0; i < nOut; i++)

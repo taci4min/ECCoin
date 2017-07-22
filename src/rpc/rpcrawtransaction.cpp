@@ -13,6 +13,7 @@
 #include "main.h"
 #include "p2p/net.h"
 #include "wallet/wallet.h"
+#include "arith_uint256.h"
 
 using namespace std;
 using namespace boost;
@@ -81,7 +82,7 @@ void TxToJSON(const CTransaction& tx, const uint256 hashBlock, Object& entry)
     }
     entry.push_back(Pair("vout", vout));
 
-    if (hashBlock != 0)
+    if (hashBlock != ArithToUint256(arith_uint256(0)))
     {
         entry.push_back(Pair("blockhash", hashBlock.GetHex()));
         map<uint256, CBlockIndex*>::iterator mi = mapBlockIndex.find(hashBlock);
@@ -117,7 +118,7 @@ Value getrawtransaction(const Array& params, bool fHelp)
         fVerbose = (params[1].get_int() != 0);
 
     CTransaction tx;
-    uint256 hashBlock = 0;
+    uint256 hashBlock = ArithToUint256(arith_uint256(0));
     if (!GetTransaction(hash, tx, hashBlock))
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available about transaction");
 
@@ -297,7 +298,7 @@ Value decoderawtransaction(const Array& params, bool fHelp)
     }
 
     Object result;
-    TxToJSON(tx, 0, result);
+    TxToJSON(tx, ArithToUint256(arith_uint256(0)), result);
 
     return result;
 }
@@ -557,10 +558,10 @@ Value sendrawtransaction(const Array& params, bool fHelp)
     // See if the transaction is already in a block
     // or in the memory pool:
     CTransaction existingTx;
-    uint256 hashBlock = 0;
+    uint256 hashBlock = ArithToUint256(arith_uint256(0));
     if (GetTransaction(hashTx, existingTx, hashBlock))
     {
-        if (hashBlock != 0)
+        if (hashBlock != ArithToUint256(arith_uint256(0)))
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("transaction already in block ")+hashBlock.GetHex());
         // Not in block, but already in the memory pool; will drop
         // through to re-relay it.

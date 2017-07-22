@@ -15,9 +15,10 @@
 #include "keystore.h"
 #include "script.h"
 #include "ui_interface.h"
-#include "walletdb.h"
 #include "amount.h"
 #include "tx/tx.h"
+#include "db.h"
+#include "chain/locator.h"
 
 
 extern bool fWalletUnlockStakingOnly;
@@ -28,6 +29,19 @@ class CReserveKey;
 class COutput;
 class CCoinControl;
 struct CMutableTransaction;
+class CWalletDB;
+
+
+/** Error statuses for the wallet database */
+enum DBErrors
+{
+    DB_LOAD_OK,
+    DB_CORRUPT,
+    DB_NONCRITICAL_ERROR,
+    DB_TOO_NEW,
+    DB_LOAD_FAIL,
+    DB_NEED_REWRITE
+};
 
 /** (client) version numbers for particular wallet features */
 /** After version 2.4.7.7 the version shifted right one digit to 0.2.4.8 so all wallet features must also lose a digit*/
@@ -48,6 +62,38 @@ struct CRecipient
     CScript scriptPubKey;
     CAmount nAmount;
     bool fSubtractFeeFromAmount;
+};
+
+class CKeyMetadata
+{
+public:
+    static const int CURRENT_VERSION=1;
+    int nVersion;
+    int64_t nCreateTime; // 0 means unknown
+
+    CKeyMetadata()
+    {
+        SetNull();
+    }
+    CKeyMetadata(int64_t nCreateTime_)
+    {
+        nVersion = CKeyMetadata::CURRENT_VERSION;
+        nCreateTime = nCreateTime_;
+    }
+
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
+        READWRITE(this->nVersion);
+        READWRITE(nCreateTime);
+    }
+
+    void SetNull()
+    {
+        nVersion = CKeyMetadata::CURRENT_VERSION;
+        nCreateTime = 0;
+    }
 };
 
 
@@ -98,6 +144,7 @@ private:
     // the maximum wallet format version: memory-only variable that specifies to what version this wallet may be upgraded
     int nWalletMaxVersion;
 
+    std::unique_ptr<CWalletDBWrapper> dbw;
 public:
     mutable CCriticalSection cs_wallet;
 
@@ -112,15 +159,18 @@ public:
     MasterKeyMap mapMasterKeys;
     unsigned int nMasterKeyMaxID;
 
-    CWallet()
+    // Create wallet with dummy database handle
+    CWallet(): dbw(new CWalletDBWrapper())
     {
-        nWalletVersion = FEATURE_BASE;
-        nWalletMaxVersion = FEATURE_BASE;
-        fFileBacked = false;
-        nMasterKeyMaxID = 0;
-        pwalletdbEncryption = NULL;
-        nOrderPosNext = 0;
+        SetNull();
     }
+
+    // Create wallet with passed-in database handle
+    CWallet(std::unique_ptr<CWalletDBWrapper> dbw_in) : dbw(std::move(dbw_in))
+    {
+        SetNull();
+    }
+
     CWallet(std::string strWalletFileIn)
     {
         nWalletVersion = FEATURE_BASE;
@@ -131,6 +181,25 @@ public:
         pwalletdbEncryption = NULL;
         nOrderPosNext = 0;
     }
+
+    void SetNull()
+    {
+        nWalletVersion = FEATURE_BASE;
+        nWalletMaxVersion = FEATURE_BASE;
+        fFileBacked = false;
+        nMasterKeyMaxID = 0;
+        pwalletdbEncryption = NULL;
+        nOrderPosNext = 0;
+    }
+
+    /** Get database handle used by this wallet. Ideally this function would
+     * not be necessary.
+     */
+    CWalletDBWrapper& GetDBHandle()
+    {
+        return *dbw;
+    }
+
 
     std::map<uint256, CWalletTx> mapWallet;
     int64_t nOrderPosNext;

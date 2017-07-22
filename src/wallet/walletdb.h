@@ -8,54 +8,11 @@
 #include "base58.h"
 #include "db.h"
 #include "chain/locator.h"
-
+#include "wallet.h"
 
 class CKeyPool;
 class CAccount;
 class CAccountingEntry;
-
-/** Error statuses for the wallet database */
-enum DBErrors
-{
-    DB_LOAD_OK,
-    DB_CORRUPT,
-    DB_NONCRITICAL_ERROR,
-    DB_TOO_NEW,
-    DB_LOAD_FAIL,
-    DB_NEED_REWRITE
-};
-
-class CKeyMetadata
-{
-public:
-    static const int CURRENT_VERSION=1;
-    int nVersion;
-    int64_t nCreateTime; // 0 means unknown
-
-    CKeyMetadata()
-    {
-        SetNull();
-    }
-    CKeyMetadata(int64_t nCreateTime_)
-    {
-        nVersion = CKeyMetadata::CURRENT_VERSION;
-        nCreateTime = nCreateTime_;
-    }
-
-    ADD_SERIALIZE_METHODS
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        READWRITE(this->nVersion);
-        READWRITE(nCreateTime);
-    }
-
-    void SetNull()
-    {
-        nVersion = CKeyMetadata::CURRENT_VERSION;
-        nCreateTime = 0;
-    }
-};
 
 
 /** Access to the wallet database (wallet.dat) */
@@ -66,7 +23,6 @@ private:
     void operator=(const CWalletDB&);
     CDB batch;
     CWalletDBWrapper& m_dbw;
-
 
     template <typename K, typename T>
     bool WriteIC(const K& key, const T& value, bool fOverwrite = true)
@@ -87,13 +43,16 @@ private:
         m_dbw.IncrementUpdateCounter();
         return true;
     }
-
 public:
     CWalletDB(CWalletDBWrapper& dbw, const char* pszMode = "r+", bool fFlushOnClose = true) :
         batch(dbw, pszMode, fFlushOnClose),
         m_dbw(dbw)
     {
 
+    }
+    CDB* getBatch()
+    {
+        return &batch;
     }
 
     bool WriteName(const std::string& strAddress, const std::string& strName);

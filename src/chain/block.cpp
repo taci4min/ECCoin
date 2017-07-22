@@ -57,20 +57,20 @@ void static InvalidChainFound(CBlockIndex* pindexNew)
     if (pindexNew->nChainTrust > nBestInvalidTrust)
     {
         nBestInvalidTrust = pindexNew->nChainTrust;
-        CTxDB().WriteBestInvalidTrust(CBigNum(nBestInvalidTrust));
+        CTxDB().WriteBestInvalidTrust(CBigNum(ArithToUint256(nBestInvalidTrust)));
     }
 
-    uint256 nBestInvalidBlockTrust = pindexNew->nChainTrust - pindexNew->pprev->nChainTrust;
-    uint256 nBestBlockTrust = pindexBest->nHeight != 0 ? (pindexBest->nChainTrust - pindexBest->pprev->nChainTrust) : pindexBest->nChainTrust;
+    uint256 nBestInvalidBlockTrust = ArithToUint256(pindexNew->nChainTrust - pindexNew->pprev->nChainTrust);
+    uint256 nBestBlockTrust = ArithToUint256(pindexBest->nHeight != 0 ? (pindexBest->nChainTrust - pindexBest->pprev->nChainTrust) : pindexBest->nChainTrust);
 
     LogPrintf("InvalidChainFound: invalid block=%s  height=%d  trust=%s  blocktrust=%d  date=%s\n",
       pindexNew->GetBlockHash().ToString().substr(0,20).c_str(), pindexNew->nHeight,
-      CBigNum(pindexNew->nChainTrust).ToString().c_str(), nBestInvalidBlockTrust.Get64(),
+      CBigNum(ArithToUint256(pindexNew->nChainTrust)).ToString().c_str(), CBigNum(nBestInvalidBlockTrust).Get64(),
       DateTimeStrFormat("%x %H:%M:%S", pindexNew->GetBlockIndexTime()).c_str());
     LogPrintf("InvalidChainFound:  current best=%s  height=%d  trust=%s  blocktrust=%d  date=%s\n",
       pindexBest->GetBlockHash().ToString().substr(0,20).c_str(), pindexBest->nHeight,
-      CBigNum(pindexBest->nChainTrust).ToString().c_str(),
-      nBestBlockTrust.Get64(),
+      CBigNum(ArithToUint256(pindexBest->nChainTrust)).ToString().c_str(),
+      CBigNum(nBestBlockTrust).Get64(),
       DateTimeStrFormat("%x %H:%M:%S", pindexBest->GetBlockIndexTime()).c_str());
 }
 
@@ -241,7 +241,7 @@ int64_t CBlock::GetBlockTime() const
 unsigned int CBlock::GetStakeEntropyBit(unsigned int nHeight) const
 {
     // Take last bit of block hash as entropy bit
-    unsigned int nEntropyBit = static_cast<unsigned int>((GetHash().Get64()) & uint64_t(1));
+    unsigned int nEntropyBit = static_cast<unsigned int>((CBigNum(GetHash()).Get64()) & uint64_t(1));
     if (fDebug && GetBoolArg("-printstakemodifier", false))
         LogPrintf("GetStakeEntropyBit: nHeight=%u, hashBlock=%s nEntropyBit=%u\n",nHeight, GetHash().ToString().c_str(), nEntropyBit);
     return nEntropyBit;
@@ -290,7 +290,7 @@ uint256 CBlock::BuildMerkleTree() const
     }
     if (vMerkleTree.empty())
     {
-        return 0;
+        return uint256();
     }
     else
     {
@@ -317,7 +317,7 @@ std::vector<uint256> CBlock::GetMerkleBranch(int nIndex) const
 uint256 CBlock::CheckMerkleBranch(uint256 hash, const std::vector<uint256>& vMerkleBranch, int nIndex)
 {
     if (nIndex == -1)
-        return 0;
+        return uint256();
     BOOST_FOREACH(const uint256& otherside, vMerkleBranch)
     {
         if (nIndex & 1)
@@ -338,7 +338,7 @@ bool CBlock::WriteToDisk(unsigned int& nFileRet, unsigned int& nBlockPosRet)
         return error("CBlock::WriteToDisk() : AppendBlockFile failed");
 
     // Write index header
-    unsigned int nSize = fileout.GetSerializeSize(*this);
+    unsigned int nSize = GetSerializeSize(fileout, *this);
     fileout << FLATDATA(pchMessageStart) << nSize;
 
     // Write block
@@ -366,7 +366,7 @@ bool CBlock::ReadFromDisk(unsigned int nFile, unsigned int nBlockPos, bool fRead
 
     // Open history file to read
     CAutoFile filein = CAutoFile(OpenBlockFile(nFile, nBlockPos, "rb"), SER_DISK, CLIENT_VERSION);
-    if (!filein)
+    if (filein.IsNull())
         return error("CBlock::ReadFromDisk() : OpenBlockFile failed");
     if (!fReadTransactions)
         filein.nType |= SER_BLOCKHEADERONLY;
@@ -464,7 +464,7 @@ bool CBlock::DisconnectBlock(CTxDB& txdb, CHeaderChainDB& hcdb, CBlockIndex* pin
         /// need to do this to update the key/value pair of that block with a hashNext of 0 so it doesnt think the block that was
         /// just deleted is still the next block in the chain
         CDiskBlockIndex blockindexPrev(pindex->pprev);
-        blockindexPrev.hashNext = 0;
+        blockindexPrev.hashNext = uint256();
         if (!hcdb.WriteIndexHeader(blockindexPrev))
         {
             return error("DisconnectBlock() : WriteIndexHeader failed");
@@ -491,7 +491,7 @@ bool CBlock::ConnectBlock(CTxDB& txdb, CHeaderChainDB& hcdb, CBlockIndex* pindex
         // Since we're just checking the block and not actually connecting it, it might not (and probably shouldn't) be on the disk to get the transaction from
         nTxPos = 1;
     else
-        nTxPos = pindex->nBlockPos + ::GetSerializeSize(CBlock(), SER_DISK, CLIENT_VERSION) - (2 * GetSizeOfCompactSize(0)) + GetSizeOfCompactSize(vtx.size());
+        nTxPos = ::GetSerializeSize(CBlock(), SER_DISK, CLIENT_VERSION) - 1 + GetSizeOfCompactSize(vtx.size());
 
     map<uint256, CTxIndex> mapQueuedChanges;
     int64_t nFees = 0;
@@ -559,7 +559,7 @@ bool CBlock::ConnectBlock(CTxDB& txdb, CHeaderChainDB& hcdb, CBlockIndex* pindex
         mapQueuedChanges[hashTx] = CTxIndex(posThisTx, tx.vout.size());
     }
 
-    uint256 prevHash = 0;
+    uint256 prevHash = uint256();
     if(pindex->pprev)
     {
         prevHash = pindex->pprev->GetBlockHash();
@@ -723,12 +723,12 @@ bool CBlock::SetBestChain(CTxDB& txdb, CHeaderChainDB& hcdb, CBlockIndex* pindex
     nBestTimeReceived = GetTime();
     nTransactionsUpdated++;
 
-    uint256 nBestBlockTrust = pindexBest->nHeight != 0 ? (pindexBest->nChainTrust - pindexBest->pprev->nChainTrust) : pindexBest->nChainTrust;
+    uint256 nBestBlockTrust = ArithToUint256(pindexBest->nHeight != 0 ? (pindexBest->nChainTrust - pindexBest->pprev->nChainTrust) : pindexBest->nChainTrust);
 
     LogPrintf("SetBestChain: new best=%s  height=%d  trust=%s  blocktrust=%d  date=%s\n",
       pindexBest->GetBlockHash().ToString().substr(0,20).c_str(), pindexBest->nHeight,
-      CBigNum(nBestChainTrust).ToString().c_str(),
-      nBestBlockTrust.Get64(),
+      CBigNum(ArithToUint256(nBestChainTrust)).ToString().c_str(),
+      CBigNum(nBestBlockTrust).Get64(),
       DateTimeStrFormat("%x %H:%M:%S", pindexBest->GetBlockIndexTime()).c_str());
 
     std::string strCmd = GetArg("-blocknotify", "");
@@ -947,11 +947,7 @@ bool CBlock::AcceptBlock(CBlock* pblock)
     }
     CBlockIndex* pindexPrev = (*mi).second;
     int nHeight = pindexPrev->nHeight +1 ;
-
-    bool IsPoS = (nBits != GetNextTargetRequired(pindexPrev, true) && nHeight > CUTOFF_HEIGHT);
-    //bool IsPoW = ( (nBits != GetNextTargetRequired(pindexPrev, false)) && nHeight <= CUTOFF_HEIGHT ); //not used by ECC
-    //if ( (IsPoS | IsPoW) == true)
-    if(IsPoS == true)
+    if((nBits != GetNextTargetRequired(pindexPrev, true) && nHeight > CUTOFF_HEIGHT))
     {
         //LogPrintf("nBits = %i , GetNextTarget = %i \n", nBits, GetNextTargetRequired(pindexPrev, true));
         LogPrintf("AcceptBlock() : Block is not Correct PoW or Pos. hash: %s, prevhash: %s \n",hash.ToString().substr(0,20).c_str(), pblock->hashPrevBlock.ToString().substr(0,20).c_str());
@@ -972,7 +968,7 @@ bool CBlock::AcceptBlock(CBlock* pblock)
         return DoS(100, error("AcceptBlock() : rejected by hardened checkpoint lock-in at %d", nHeight));
 
     // Verify hash target and signature of coinstake tx
-    uint256 hashProofOfStake = 0;
+    uint256 hashProofOfStake = ArithToUint256(arith_uint256(0));
     if (IsProofOfStake())
     {
         if (!CheckProofOfStake(vtx[1], nBits, hashProofOfStake))

@@ -206,8 +206,6 @@ bool InitParameterInteraction()
         fDebugNet = GetBoolArg("-debugnet", false);
     }
 
-    bitdb.SetDetach(GetBoolArg("-detachdb", false));
-
     fDaemon = GetBoolArg("-daemon");
 
     if (IsArgSet("-paytxfee"))
@@ -627,7 +625,7 @@ bool AppInit2()
         pindexRescan = pindexGenesisBlock;
     else
     {
-        CWalletDB walletdb(strWalletFileName);
+        CWalletDB walletdb(pwalletMain->GetDBHandle());
         CBlockLocator locator;
         if (walletdb.ReadBestBlock(locator))
             pindexRescan = pindexBest;

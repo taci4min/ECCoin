@@ -53,12 +53,12 @@ CBlockIndex::CBlockIndex()
     nFlags = 0;
     nStakeModifier = 0;
     nStakeModifierChecksum = 0;
-    hashProofOfStake = 0;
+    hashProofOfStake = uint256();
     prevoutStake.SetNull();
     nStakeTime = 0;
 
     nVersion       = 0;
-    hashMerkleRoot = 0;
+    hashMerkleRoot = uint256();
     nTime          = 0;
     nBits          = 0;
     nNonce         = 0;
@@ -89,7 +89,7 @@ CBlockIndex::CBlockIndex(unsigned int nFileIn, unsigned int nBlockPosIn, CBlock&
     nFlags = 0;
     nStakeModifier = 0;
     nStakeModifierChecksum = 0;
-    hashProofOfStake = 0;
+    hashProofOfStake = uint256();
     if (block.IsProofOfStake())
     {
         SetProofOfStake();
@@ -132,15 +132,15 @@ int64_t CBlockIndex::GetBlockIndexTime() const
     return (int64_t)nTime;
 }
 
-uint256 CBlockIndex::GetBlockTrust() const
+arith_uint256 CBlockIndex::GetBlockTrust() const
 {
     CBigNum bnTarget;
     bnTarget.SetCompact(nBits);
 
     if (bnTarget <= 0)
-        return 0;
+        return arith_uint256(0);
 
-    return ((CBigNum(1)<<256) / (bnTarget+1)).getuint256();
+    return UintToArith256(((CBigNum(1)<<256) / (bnTarget+1)).getuint256());
 }
 
 bool CBlockIndex::IsInMainChain() const
@@ -258,7 +258,7 @@ void CBlockIndex::print() const
 
 uint256 CDiskBlockIndex::GetBlockHash() const
 {
-    if (fUseFastIndex && (nTime < GetAdjustedTime() - 24 * 60 * 60) && blockHash != 0)
+    if (fUseFastIndex && (nTime < GetAdjustedTime() - 24 * 60 * 60) && blockHash != uint256())
         return blockHash;
 
     CBlock block;

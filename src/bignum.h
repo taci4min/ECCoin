@@ -205,6 +205,11 @@ public:
         BN_mpi2bn(pch, p - pch, this);
     }
 
+    uint64_t Get64()
+    {
+        return getuint64();
+    }
+
     uint64_t getuint64()
     {
         unsigned int nSize = BN_bn2mpi(this, NULL);
@@ -404,10 +409,10 @@ public:
         return ToString(16);
     }
 
-//    unsigned int GetSerializeSize(int nType=0, int nVersion=PROTOCOL_VERSION) const
-//    {
-//        return ::GetSerializeSize(getvch(), nType, nVersion);
-//    }
+    unsigned int GetSerializeSize(int nType=0, int nVersion=PROTOCOL_VERSION) const
+    {
+        return ::GetSerializeSize(getvch(), nType, nVersion);
+    }
 
     template<typename Stream>
     void Serialize(Stream& s, int nType=0, int nVersion=PROTOCOL_VERSION) const

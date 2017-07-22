@@ -15,17 +15,16 @@ std::multimap<uint256, CBlock*> mapOrphanBlocksByPrev;
 std::set<std::pair<COutPoint, unsigned int> > setStakeSeenOrphan;
 std::set<std::pair<COutPoint, unsigned int> > setStakeSeen;
 
-std::map<uint256, CHeaderChain*> mapChain;
 std::map<uint256, CBlockIndex*> mapBlockIndex;
 
 int nCoinbaseMaturity = 30;
 
 unsigned int nTransactionsUpdated = 0;
 
-CBigNum bnProofOfWorkLimit(~uint256(0) >> 20);
-CBigNum bnProofOfStakeLimit(~uint256(0) >> 20);
-CBigNum bnProofOfWorkLimitTestNet(~uint256(0) >> 20);
-CBigNum bnProofOfStakeLimitTestNet(~uint256(0) >> 20);
+uint256 bnProofOfWorkLimit(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));
+uint256 bnProofOfStakeLimit(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));
+uint256 bnProofOfWorkLimitTestNet(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));
+uint256 bnProofOfStakeLimitTestNet(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));
 
 unsigned int nStakeTargetSpacing = 45;
 unsigned int nTargetSpacing = 45;
@@ -39,5 +38,5 @@ CBlockIndex* pindexGenesisBlock = NULL;
 int64_t nBestTimeReceived = 0;
 int64_t nChainStartTime = 1393744287;
 
-uint256 nBestChainTrust = 0;
-uint256 nBestInvalidTrust = 0;
+arith_uint256 nBestChainTrust = 0;
+arith_uint256 nBestInvalidTrust = 0;

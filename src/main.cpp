@@ -3,6 +3,7 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "arith_uint256.h"
 #include "chain/checkpoints.h"
 #include "wallet/db.h"
 #include "tx/txdb-leveldb.h"
@@ -173,8 +174,7 @@ bool AddOrphanTx(const CTransaction& tx)
     // 10,000 orphans, each of which is at most 5,000 bytes big is
     // at most 500 megabytes of orphans:
 
-    size_t nSize = tx.GetSerializeSize(SER_NETWORK, CTransaction::CURRENT_VERSION);
-
+    size_t nSize = tx.GetTotalSize();
     if (nSize > 5000)
     {
         LogPrintf("ignoring large orphan tx (size: %u, hash: %s)\n", nSize, hash.ToString().substr(0,10).c_str());
@@ -378,19 +378,21 @@ int64_t GetProofOfStakeReward(int64_t nCoinAge, int nHeight)
 //
 // maximum nBits value could possible be required nTime after
 //
-unsigned int ComputeMaxBits(CBigNum bnTargetLimit, unsigned int nBase, int64_t nTime)
-{
-    CBigNum bnResult;
-    bnResult.SetCompact(nBase);
+unsigned int ComputeMaxBits(uint256 bnTargetLimit, unsigned int nBase, int64_t nTime)
+{    
+    bool fNegative;
+    bool fOverflow;
+    arith_uint256 bnResult;
+    bnResult.SetCompact(nBase, &fNegative, &fOverflow);
     bnResult *= 2;
-    while (nTime > 0 && bnResult < bnTargetLimit)
+    while (nTime > 0 && bnResult < UintToArith256(bnTargetLimit))
     {
         // Maximum 200% adjustment per day...
         bnResult *= 2;
         nTime -= 24 * 60 * 60;
     }
-    if (bnResult > bnTargetLimit)
-        bnResult = bnTargetLimit;
+    if (bnResult > UintToArith256(bnTargetLimit))
+        bnResult = UintToArith256(bnTargetLimit);
     return bnResult.GetCompact();
 }
 
@@ -407,7 +409,7 @@ unsigned int ComputeMinWork(unsigned int nBase, int64_t nTime)
 // minimum amount of stake that could possibly be required nTime after
 // minimum proof-of-stake required was nBase
 //
-unsigned int ComputeMinStake(unsigned int nBase, int64_t nTime, unsigned int nBlockTime)
+unsigned int ComputeMinStake(unsigned int nBase, int64_t nTime)
 {
     return ComputeMaxBits(bnProofOfStakeLimit, nBase, nTime);
 }
@@ -423,12 +425,12 @@ const CBlockIndex* GetLastBlockIndex(const CBlockIndex* pindex, bool fProofOfSta
 
 unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfStake)
 {
-        CBigNum bnTargetLimit = bnProofOfWorkLimit;
+        arith_uint256 bnTargetLimit = UintToArith256(bnProofOfWorkLimit);
 
         if(fProofOfStake)
         {
             // Proof-of-Stake blocks has own target limit since nVersion=3 supermajority on mainNet and always on testNet
-            bnTargetLimit = bnProofOfStakeLimit;
+            bnTargetLimit = UintToArith256(bnProofOfStakeLimit);
         }
 
         if (pindexLast == NULL)
@@ -453,7 +455,7 @@ unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfS
 
         // ppcoin: target change every block
         // ppcoin: retarget with exponential moving toward target spacing
-        CBigNum bnNew;
+        arith_uint256 bnNew;
         bnNew.SetCompact(pindexPrev->nBits);
         int64_t spacing;
         if (fProofOfStake)
@@ -484,15 +486,18 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits)
     {
         return true;
     }
-    CBigNum bnTarget;
-    bnTarget.SetCompact(nBits);
+    bool fNegative;
+    bool fOverflow;
+    arith_uint256 bnTarget;
+
+    bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
 
     // Check range
-    if (bnTarget <= 0 || bnTarget > bnProofOfWorkLimit)
+    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > UintToArith256(bnProofOfWorkLimit))
         return error("CheckProofOfWork() : nBits below minimum work");
 
     //Check proof of work matches claimed amount
-    if (hash > bnTarget.getuint256())
+    if (UintToArith256(hash) > bnTarget)
         return error("CheckProofOfWork() : hash doesn't match nBits");
 
     return true;
@@ -547,7 +552,7 @@ bool ProcessBlock(CNode* pfrom, CBlock* pblock)
         CBigNum bnRequired;
 
         if (pblock->IsProofOfStake())
-            bnRequired.SetCompact(ComputeMinStake(GetLastBlockIndex(pcheckpoint, true)->nBits, deltaTime, pblock->nTime));
+            bnRequired.SetCompact(ComputeMinStake(GetLastBlockIndex(pcheckpoint, true)->nBits, deltaTime));
         else
             bnRequired.SetCompact(ComputeMinWork(GetLastBlockIndex(pcheckpoint, false)->nBits, deltaTime));
 
@@ -560,14 +565,14 @@ bool ProcessBlock(CNode* pfrom, CBlock* pblock)
             else
             {
                 LOCK(pfrom->cs_vSend);
-                pfrom->PushGetBlocks(pindexBest, uint256(0));
+                pfrom->PushGetBlocks(pindexBest, uint256());
             }
             return error("ProcessBlock() : block with too little %s", pblock->IsProofOfStake()? "proof-of-stake" : "proof-of-work");
         }
     }
 
     // If we don't already have its previous block, shunt it off to holding area until we get it
-    if (pblock->hashPrevBlock != 0 && !mapBlockIndex.count(pblock->hashPrevBlock))
+    if (pblock->hashPrevBlock != uint256() && !mapBlockIndex.count(pblock->hashPrevBlock))
     {
         LogPrintf("ProcessBlock: ORPHAN BLOCK with hash = %s, prevHash=%s\n", pblock->GetHash().ToString().substr(0,20).c_str() ,pblock->hashPrevBlock.ToString().substr(0,20).c_str());
         // Accept orphans as long as there is a node to request its parents from
@@ -730,11 +735,11 @@ bool LoadBlockIndex(bool fAllowNew)
         CBlock block;
 
         block.vtx.push_back(txNew);
-        block.hashPrevBlock = 0;
+        block.hashPrevBlock = uint256();
         block.hashMerkleRoot = block.BuildMerkleTree();
         block.nVersion = 1;
         block.nTime    = 1393744307;
-        block.nBits    = bnProofOfWorkLimit.GetCompact();
+        block.nBits    = UintToArith256(bnProofOfWorkLimit).GetCompact();
         block.nNonce   = 12799721;
 		    if(fTestNet)
         {
@@ -750,11 +755,11 @@ bool LoadBlockIndex(bool fAllowNew)
         LogPrintf("block.nBits = %u \n", block.nBits);
 
         //// debug print
-        assert(block.hashMerkleRoot == uint256("0x4db82fe8b45f3dae2b7c7b8be5ec4c37e72e25eaf989b9db24ce1d0fd37eed8b")); // if false program aborts
+        assert(block.hashMerkleRoot == uint256S("4db82fe8b45f3dae2b7c7b8be5ec4c37e72e25eaf989b9db24ce1d0fd37eed8b")); // if false program aborts
         assert(block.GetHash() == (!fTestNet ? hashGenesisBlock : hashGenesisBlockTestNet));
         assert(block.CheckBlock());
         // Verify hash target and signature of coinstake tx
-        uint256 hashProofOfStake = 0;
+        uint256 hashProofOfStake = uint256();
 
         // Start new block file
         unsigned int nFile;
@@ -840,67 +845,6 @@ void PrintBlockTree()
         for (unsigned int i = 0; i < vNext.size(); i++)
             vStack.push_back(make_pair(nCol+i, vNext[i]));
     }
-}
-
-bool LoadExternalBlockFile(FILE* fileIn)
-{
-    int64_t nStart = GetTimeMillis();
-
-    int nLoaded = 0;
-    {
-        LOCK(cs_main);
-        try
-        {
-            CAutoFile blkdat(fileIn, SER_DISK, CLIENT_VERSION);
-            unsigned int nPos = 0;
-            while (nPos != (unsigned int)-1 && blkdat.good() && !fRequestShutdown)
-            {
-                unsigned char pchData[65536];
-                do {
-                    fseek(blkdat, nPos, SEEK_SET);
-                    int nRead = fread(pchData, 1, sizeof(pchData), blkdat);
-                    if (nRead <= 8)
-                    {
-                        nPos = (unsigned int)-1;
-                        break;
-                    }
-                    void* nFind = memchr(pchData, pchMessageStart[0], nRead+1-sizeof(pchMessageStart));
-                    if (nFind)
-                    {
-                        if (memcmp(nFind, pchMessageStart, sizeof(pchMessageStart))==0)
-                        {
-                            nPos += ((unsigned char*)nFind - pchData) + sizeof(pchMessageStart);
-                            break;
-                        }
-                        nPos += ((unsigned char*)nFind - pchData) + 1;
-                    }
-                    else
-                        nPos += sizeof(pchData) - sizeof(pchMessageStart) + 1;
-                } while(!fRequestShutdown);
-                if (nPos == (unsigned int)-1)
-                    break;
-                fseek(blkdat, nPos, SEEK_SET);
-                unsigned int nSize;
-                blkdat >> nSize;
-                if (nSize > 0 && nSize <= MAX_BLOCK_SIZE)
-                {
-                    CBlock block;
-                    blkdat >> block;
-                    if (ProcessBlock(NULL,&block))
-                    {
-                        nLoaded++;
-                        nPos += 4 + nSize;
-                    }
-                }
-            }
-        }
-        catch (std::exception &e) {
-            LogPrintf("%s() : Deserialize or I/O error caught during load\n",
-                   BOOST_CURRENT_FUNCTION);
-        }
-    }
-    LogPrintf("Loaded %i blocks from external file in %d ms\n", nLoaded, GetTimeMillis() - nStart);
-    return nLoaded > 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
