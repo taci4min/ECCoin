@@ -19,10 +19,11 @@
 #include "util/utilexceptions.h"
 #include "util/random.h"
 
+#include "p2p/connman.h"
 #include "p2p/netutils.h"
 #include "p2p/proxyutils.h"
-
-#include "daemon.h"
+#include "p2p/addrman.h"
+#include "p2p/net.h"
 
 #include <string>
 #include <string.h>
@@ -57,6 +58,14 @@ unsigned int nNodeLifespan;
 unsigned int nDerivationMethodIndex;
 bool fUseFastIndex;
 boost::condition_variable cvBlockChange;
+void StartNode();
+
+ServiceFlags nRelevantServices = NODE_NETWORK;
+
+static std::string ResolveErrMsg(const char * const optname, const std::string& strBind)
+{
+    return strprintf(_("Cannot resolve -%s address: '%s'"), optname, strBind);
+}
 
 bool static InitWarning(const std::string &str)
 {
@@ -248,19 +257,6 @@ std::string LicenseInfo()
            "\n";
 }
 
-
-bool static Bind(const CService &addr, bool fError = true) {
-    if (IsLimited(addr))
-        return false;
-    std::string strError;
-    if (!BindListenPort(addr, strError)) {
-        if (fError)
-            return InitError(strError);
-        return false;
-    }
-    return true;
-}
-
 // Core-specific options shared between UI and daemon
 std::string HelpMessage()
 {   
@@ -438,6 +434,26 @@ bool AppInit2()
 
     // ********************************************************* Step 6: network initialization
 
+    // sanitize comments per BIP-0014, format user agent and check total size
+    std::vector<std::string> uacomments;
+    for (const std::string& cmt : gArgs.GetArgs("-uacomment")) {
+        if (cmt != SanitizeString(cmt, SAFE_CHARS_UA_COMMENT))
+            return InitError(strprintf(_("User Agent comment (%s) contains unsafe characters."), cmt));
+        uacomments.push_back(cmt);
+    }
+    strSubVersion = FormatSubVersion(CLIENT_NAME, CLIENT_VERSION, uacomments);
+    if (strSubVersion.size() > MAX_SUBVERSION_LENGTH) {
+        return InitError(strprintf(_("Total length of network version string (%i) exceeds maximum length (%i). Reduce the number or size of uacomments."),
+            strSubVersion.size(), MAX_SUBVERSION_LENGTH));
+    }
+
+
+    assert(!pconnman);
+    pconnman = std::unique_ptr<CConnman>(new CConnman(GetRand(std::numeric_limits<uint64_t>::max()), GetRand(std::numeric_limits<uint64_t>::max())));
+    CConnman& connman = *pconnman;
+
+
+
     int nSocksVersion = GetArg("-socks", 5);
     if (nSocksVersion != 4 && nSocksVersion != 5)
         return InitError(strprintf(_("Unknown -socks proxy version requested: %i"), nSocksVersion));
@@ -498,31 +514,7 @@ bool AppInit2()
 #ifdef USE_UPNP
     fUseUPnP = GetBoolArg("-upnp", USE_UPNP);
 #endif
-    bool fBound = false;
-    if (!fNoListen)
-    {
-        std::string strError;
-        if (IsArgSet("-bind")) {
-				std::vector<std::string> binds = gArgs.GetArgs("-bind");
-            BOOST_FOREACH(std::string strBind, binds) {
-                CService addrBind;
-                if (!Lookup(strBind.c_str(), addrBind, GetListenPort(), false))
-                    return InitError(strprintf(_("Cannot resolve -bind address: '%s'"), strBind.c_str()));
-                fBound |= Bind(addrBind);
-            }
-        } else {
-            struct in_addr inaddr_any;
-            inaddr_any.s_addr = INADDR_ANY;
-#ifdef USE_IPV6
-            if (!IsLimited(NET_IPV6))
-                fBound |= Bind(CService(in6addr_any, GetListenPort()), false);
-#endif
-            if (!IsLimited(NET_IPV4))
-                fBound |= Bind(CService(inaddr_any, GetListenPort()), !fBound);
-        }
-        if (!fBound)
-            return InitError(_("Failed to listen on any port. Use -listen=0 if you want this."));
-    }
+
     if (IsArgSet("-externalip"))
     {
 		  std::vector<std::string> externals = gArgs.GetArgs("-externalip");
@@ -537,7 +529,12 @@ bool AppInit2()
     {
         std::vector<std::string> seeds = gArgs.GetArgs("-seednode");
     	BOOST_FOREACH(string strDest, seeds)
-        	AddOneShot(strDest);
+            pconnman->AddOneShot(strDest);
+    }
+
+    uint64_t nMaxOutboundLimit = 0; //unlimited unless -maxuploadtarget is set
+    if (IsArgSet("-maxuploadtarget")) {
+        nMaxOutboundLimit = GetArg("-maxuploadtarget", DEFAULT_MAX_UPLOAD_TARGET)*1024*1024;
     }
 
     // ********************************************************* Step 7: load blockchain
@@ -645,10 +642,10 @@ bool AppInit2()
     nStart = GetTimeMillis();
     {
         CAddrDB adb;
-        if (!adb.Read(addrman))
+        if (!adb.Read(pconnman->GetAddrMan()))
             LogPrintf("Invalid or missing peers.dat; recreating\n");
     }
-    LogPrintf("Loaded %i addresses from peers.dat  %I64d ms\n", addrman.size(), GetTimeMillis() - nStart);
+    LogPrintf("Loaded %i addresses from peers.dat  %I64d ms\n", pconnman->GetAddressCount(), GetTimeMillis() - nStart);
 
     // ********************************************************* Step 10: start node
 
@@ -667,6 +664,58 @@ bool AppInit2()
     boost::thread* RCPServer = new boost::thread(&ThreadRPCServer);
     ecc_threads.add_thread(RCPServer);
 
+    // Map ports with UPnP
+    MapPort(GetBoolArg("-upnp", DEFAULT_UPNP));
+
+    CConnman::Options connOptions;
+    connOptions.nLocalServices = nLocalServices;
+    connOptions.nRelevantServices = nRelevantServices;
+    //connOptions.nMaxConnections = nMaxConnections;
+    connOptions.nMaxOutbound = std::min(MAX_OUTBOUND_CONNECTIONS, connOptions.nMaxConnections);
+    connOptions.nMaxAddnode = MAX_ADDNODE_CONNECTIONS;
+    connOptions.nMaxFeeler = 1;
+    connOptions.nBestHeight = pindexBest->nHeight;
+    connOptions.uiInterface = &uiInterface;
+    connOptions.nSendBufferMaxSize = 1000*GetArg("-maxsendbuffer", DEFAULT_MAXSENDBUFFER);
+    connOptions.nReceiveFloodSize = 1000*GetArg("-maxreceivebuffer", DEFAULT_MAXRECEIVEBUFFER);
+
+    connOptions.nMaxOutboundTimeframe = MAX_UPLOAD_TIMEFRAME;
+    connOptions.nMaxOutboundLimit = nMaxOutboundLimit;
+
+    for (const std::string& strBind : gArgs.GetArgs("-bind")) {
+        CService addrBind;
+        if (!Lookup(strBind.c_str(), addrBind, GetListenPort(), false)) {
+            return InitError(ResolveErrMsg("bind", strBind));
+        }
+        connOptions.vBinds.push_back(addrBind);
+    }
+    for (const std::string& strBind : gArgs.GetArgs("-whitebind")) {
+        CService addrBind;
+        if (!Lookup(strBind.c_str(), addrBind, 0, false)) {
+            return InitError(ResolveErrMsg("whitebind", strBind));
+        }
+        if (addrBind.GetPort() == 0) {
+            return InitError(strprintf(_("Need to specify a port with -whitebind: '%s'"), strBind));
+        }
+        connOptions.vWhiteBinds.push_back(addrBind);
+    }
+
+    for (const auto& net : gArgs.GetArgs("-whitelist")) {
+        CSubNet subnet;
+        LookupSubNet(net.c_str(), subnet);
+        if (!subnet.IsValid())
+            return InitError(strprintf(_("Invalid netmask specified in -whitelist: '%s'"), net));
+        connOptions.vWhitelistedRange.push_back(subnet);
+    }
+
+    if (gArgs.IsArgSet("-seednode")) {
+        connOptions.vSeedNodes = gArgs.GetArgs("-seednode");
+    }
+
+    if (!connman.Start(connOptions)) {
+        return false;
+    }
+
     // ********************************************************* Step 11: finished
 
     LogPrintf("Done loading\n");
@@ -681,21 +730,11 @@ bool AppInit2()
     return true;
 }
 
-
-static const int MAX_OUTBOUND_CONNECTIONS = 1000;
-
 void StartNode()
 {
         LogPrintf("NodeStarted\n");
         // Make this thread recognisable as the startup thread
         RenameThread("ECCoin-start");
-
-        if (semOutbound == NULL)
-        {
-            // initialize semaphore
-            int nMaxOutbound = MAX_OUTBOUND_CONNECTIONS;
-            semOutbound = new CSemaphore(nMaxOutbound);
-        }
 
         if (!fDiscover)
             return;
@@ -761,7 +800,7 @@ void StartNode()
 
         // Map ports with UPnP
         if (fUseUPnP)
-            MapPort();
+            MapPort(GetBoolArg("-upnp", DEFAULT_UPNP));
 
 
         // Mine proof-of-stake blocks in the background

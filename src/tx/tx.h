@@ -200,15 +200,34 @@ public:
         pos = posIn;
         vSpent.resize(nOutputs);
     }
+/*
+    ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
-    inline void Serialize(Stream& s, Operation ser_action) const {
+    inline void SerializationOp(Stream& s, Operation ser_action) {
         int nVersion = s.GetVersion();
         if (!(s.GetType() & SER_GETHASH))
             READWRITE(nVersion);
         READWRITE(pos);
         READWRITE(vSpent);
     }
+    */
+
+    template<typename Stream>
+    inline void Serialize(Stream& s) const {
+        s << pos;
+        s << vSpent;
+    }
+
+
+    template <typename Stream>
+    inline void Unserialize(Stream& s) {
+        s >> pos;
+        Unserialize_impl(s, vSpent, boost::is_fundamental<std::vector<CDiskTxPos>>());
+    }
+
+
+
 
     void SetNull()
     {

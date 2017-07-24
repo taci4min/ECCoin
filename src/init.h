@@ -20,6 +20,8 @@ extern std::string strWalletFileName;
 void StartShutdown();
 void Shutdown();
 std::string HelpMessage();
+extern boost::thread_group ecc_threads;
+
 
 
 extern bool fEnforceCanonical;

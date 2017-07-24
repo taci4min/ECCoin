@@ -7,7 +7,6 @@
 
 #include "bignum.h"
 #include "sync.h"
-#include "p2p/net.h"
 #include "script.h"
 #include "crypto/scrypt.h"
 #include "global.h"
@@ -15,6 +14,7 @@
 #include "util/utilmoneystr.h"
 #include "util/utiltime.h"
 #include "amount.h"
+#include "p2p/node.h"
 
 class CWallet;
 class CWalletTx;

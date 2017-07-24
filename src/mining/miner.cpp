@@ -12,7 +12,7 @@
 #include "tx/mempool.h"
 #include "util/utilexceptions.h"
 #include "util/util.h"
-#include "daemon.h"
+#include "p2p/connman.h"
 #include <boost/thread.hpp>
 
 using namespace std;
@@ -502,8 +502,8 @@ void FormatHashBuffers(CBlock* pblock, char* pmidstate, char* pdata, char* phash
 
 bool CheckWork(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey)
 {
-    uint256 hash = pblock->GetHash();
-    uint256 hashTarget = CBigNum().SetCompact(pblock->nBits).getuint256();
+    arith_uint256 hash = UintToArith256(pblock->GetHash());
+    arith_uint256 hashTarget = UintToArith256(CBigNum().SetCompact(pblock->nBits).getuint256());
 
     if (hash > hashTarget && pblock->IsProofOfWork())
         return error("BitcoinMiner : proof-of-work not meeting target");
@@ -561,7 +561,7 @@ void ScryptMiner(CWallet *pwallet, bool fProofOfStake)
     {
         if (fShutdown)
             return;
-        while (vNodes.empty() || vNodes.size() < 6 || IsInitialBlockDownload())
+        while (pconnman->GetNodeCount(CConnman::CONNECTIONS_ALL) < 6 || IsInitialBlockDownload())
         {
             MilliSleep(1000);
             if (fShutdown)
@@ -628,11 +628,11 @@ void ScryptMiner(CWallet *pwallet, bool fProofOfStake)
         // Search
         //
         int64_t nStart = GetTime();
-        uint256 hashTarget = CBigNum().SetCompact(pblock->nBits).getuint256();
+        arith_uint256 hashTarget = UintToArith256(CBigNum().SetCompact(pblock->nBits).getuint256());
 
         unsigned int max_nonce = 0xffff0000;
         CBlockHeader res_header;
-        uint256 result;
+        arith_uint256 result;
 
         while(true)
         {
@@ -655,7 +655,7 @@ void ScryptMiner(CWallet *pwallet, bool fProofOfStake)
                 {
                     // Found a solution
                     pblock->nNonce = nNonceFound;
-                    assert(result == pblock->GetHash());
+                    assert(result == UintToArith256(pblock->GetHash()));
                     if (!pblock->SignScryptBlock(*pwalletMain))
                     {
 //                        strMintWarning = strMintMessage;
@@ -704,7 +704,7 @@ void ScryptMiner(CWallet *pwallet, bool fProofOfStake)
                 return;
             if (!fGenerateBitcoins)
                 return;
-            if (vNodes.empty())
+            if (pconnman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0)
                 break;
             if (nBlockNonce >= 0xffff0000)
                 break;

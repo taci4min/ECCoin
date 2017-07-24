@@ -13,9 +13,9 @@
 
 class CBlockLocator
 {
-protected:
-    std::vector<uint256> vHave;
 public:
+    std::vector<uint256> vHave;
+
     CBlockLocator()
     {
     }

@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include "util/random.h"
 #include "util/utilstrencodings.h"
-#include "p2p/msgcore.h"
+#include "p2p/messages.h"
 #include "rpc/bitcoinrpc.h"
 
 using namespace std;
@@ -565,7 +565,8 @@ bool ProcessBlock(CNode* pfrom, CBlock* pblock)
             else
             {
                 LOCK(pfrom->cs_vSend);
-                pfrom->PushGetBlocks(pindexBest, uint256());
+                const CNetMsgMaker msgMaker(pfrom->GetSendVersion());
+                pconnman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETBLOCKS, CBlockLocator(pindexBest), uint256()));
             }
             return error("ProcessBlock() : block with too little %s", pblock->IsProofOfStake()? "proof-of-stake" : "proof-of-work");
         }
@@ -592,7 +593,8 @@ bool ProcessBlock(CNode* pfrom, CBlock* pblock)
                 mapOrphanBlocksByPrev.insert(make_pair(pblock2->hashPrevBlock, pblock2));
             }
             // Ask this guy to fill in what we're missing
-            pfrom->PushGetBlocks(pindexBest, GetOrphanRoot(pblock2));
+            const CNetMsgMaker msgMaker(pfrom->GetSendVersion());
+            pconnman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETBLOCKS, CBlockLocator(pindexBest), GetOrphanRoot(pblock2)));
         }
         return true;
     }
@@ -735,7 +737,7 @@ bool LoadBlockIndex(bool fAllowNew)
         CBlock block;
 
         block.vtx.push_back(txNew);
-        block.hashPrevBlock = uint256();
+        block.hashPrevBlock.SetNull();
         block.hashMerkleRoot = block.BuildMerkleTree();
         block.nVersion = 1;
         block.nTime    = 1393744307;
@@ -759,7 +761,8 @@ bool LoadBlockIndex(bool fAllowNew)
         assert(block.GetHash() == (!fTestNet ? hashGenesisBlock : hashGenesisBlockTestNet));
         assert(block.CheckBlock());
         // Verify hash target and signature of coinstake tx
-        uint256 hashProofOfStake = uint256();
+        uint256 hashProofOfStake;
+        hashProofOfStake.SetNull();
 
         // Start new block file
         unsigned int nFile;

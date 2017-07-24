@@ -33,7 +33,7 @@ void CBlockIndex::SetNull()
     nFile = 0;
 
     nVersion       = 0;
-    hashMerkleRoot = uint256();
+    hashMerkleRoot.SetNull();
     nTime          = 0;
     nBits          = 0;
     nNonce         = 0;
@@ -53,12 +53,12 @@ CBlockIndex::CBlockIndex()
     nFlags = 0;
     nStakeModifier = 0;
     nStakeModifierChecksum = 0;
-    hashProofOfStake = uint256();
+    hashProofOfStake.SetNull();
     prevoutStake.SetNull();
     nStakeTime = 0;
 
     nVersion       = 0;
-    hashMerkleRoot = uint256();
+    hashMerkleRoot.SetNull();
     nTime          = 0;
     nBits          = 0;
     nNonce         = 0;
@@ -89,7 +89,7 @@ CBlockIndex::CBlockIndex(unsigned int nFileIn, unsigned int nBlockPosIn, CBlock&
     nFlags = 0;
     nStakeModifier = 0;
     nStakeModifierChecksum = 0;
-    hashProofOfStake = uint256();
+    hashProofOfStake.SetNull();
     if (block.IsProofOfStake())
     {
         SetProofOfStake();

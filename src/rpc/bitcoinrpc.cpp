@@ -11,7 +11,6 @@
 #include "base58.h"
 #include "bitcoinrpc.h"
 #include "db.h"
-#include "daemon.h"
 
 #include <boost/thread.hpp>
 #include <boost/asio.hpp>

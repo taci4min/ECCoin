@@ -334,7 +334,7 @@ bool CBlock::WriteToDisk(unsigned int& nFileRet, unsigned int& nBlockPosRet)
 {
     // Open history file to append
     CAutoFile fileout = CAutoFile(AppendBlockFile(nFileRet), SER_DISK, CLIENT_VERSION);
-    if (!fileout)
+    if (fileout.IsNull())
         return error("CBlock::WriteToDisk() : AppendBlockFile failed");
 
     // Write index header
@@ -342,21 +342,21 @@ bool CBlock::WriteToDisk(unsigned int& nFileRet, unsigned int& nBlockPosRet)
     fileout << FLATDATA(pchMessageStart) << nSize;
 
     // Write block
-    long fileOutPos = ftell(fileout);
+    long fileOutPos = ftell(fileout.Get());
     if (fileOutPos < 0)
         return error("CBlock::WriteToDisk() : ftell failed");
     nBlockPosRet = fileOutPos;
     fileout << *this;
 
     // Flush stdio buffers and commit to disk before returning
-    fflush(fileout);
+    fflush(fileout.Get());
     int compareHeight = -1;
     if(pindexBest != NULL)
     {
         compareHeight = pindexBest->nHeight;
     }
     if (!IsInitialBlockDownload() || (compareHeight + 1) % 500 == 0)
-        FileCommit(fileout);
+        FileCommit(fileout.Get());
     return true;
 }
 
@@ -464,7 +464,7 @@ bool CBlock::DisconnectBlock(CTxDB& txdb, CHeaderChainDB& hcdb, CBlockIndex* pin
         /// need to do this to update the key/value pair of that block with a hashNext of 0 so it doesnt think the block that was
         /// just deleted is still the next block in the chain
         CDiskBlockIndex blockindexPrev(pindex->pprev);
-        blockindexPrev.hashNext = uint256();
+        blockindexPrev.hashNext.SetNull();
         if (!hcdb.WriteIndexHeader(blockindexPrev))
         {
             return error("DisconnectBlock() : WriteIndexHeader failed");
@@ -559,7 +559,8 @@ bool CBlock::ConnectBlock(CTxDB& txdb, CHeaderChainDB& hcdb, CBlockIndex* pindex
         mapQueuedChanges[hashTx] = CTxIndex(posThisTx, tx.vout.size());
     }
 
-    uint256 prevHash = uint256();
+    uint256 prevHash;
+    prevHash.SetNull();
     if(pindex->pprev)
     {
         prevHash = pindex->pprev->GetBlockHash();
@@ -1002,7 +1003,7 @@ bool CBlock::AcceptBlock(CBlock* pblock)
     if (pindexBest->GetBlockHash() == hash)
     {
         std::vector<CInv> vInv;
-        vInv.push_back(CInv(MSG_BLOCK, hash));
+        vInv.push_back(CInv(NetMsgType::BLOCK, hash));
         pconnman->LegacyBlockBroadcast(vInv, nBlockEstimate);
     }
 

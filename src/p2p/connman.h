@@ -13,9 +13,8 @@
 #include "protocol.h"
 #include "ui_interface.h"
 #include "subnet.h"
-#include "nodestats.h"
 #include "node.h"
-#include "netmsgtypes.h"
+#include "net.h"
 
 struct CSerializedNetMsg
 {
@@ -163,6 +162,7 @@ public:
     void MarkAddressGood(const CAddress& addr);
     void AddNewAddresses(const std::vector<CAddress>& vAddr, const CAddress& addrFrom, int64_t nTimePenalty = 0);
     std::vector<CAddress> GetAddresses();
+    CAddrMan* GetAddrMan();
 
     // Denial-of-service detection/prevention
     // The idea is to detect peers that are behaving
@@ -231,6 +231,12 @@ public:
     unsigned int GetReceiveFloodSize() const;
 
     void WakeMessageHandler();
+
+    void AddOneShot(const std::string& strDest);
+
+    /** Get a unique deterministic randomizer. */
+    CSipHasher GetDeterministicRandomizer(uint64_t id) const;
+
 private:
     struct ListenSocket {
         SOCKET socket;
@@ -243,7 +249,6 @@ private:
     bool Bind(const CService &addr, unsigned int flags);
     bool InitBinds(const std::vector<CService>& binds, const std::vector<CService>& whiteBinds);
     void ThreadOpenAddedConnections();
-    void AddOneShot(const std::string& strDest);
     void ProcessOneShot();
     void ThreadOpenConnections();
     void ThreadMessageHandler();
@@ -255,6 +260,8 @@ private:
     CNode* FindNode(const CSubNet& subNet);
     CNode* FindNode(const std::string& addrName);
     CNode* FindNode(const CService& addr);
+
+    uint64_t CalculateKeyedNetGroup(const CAddress& ad) const;
 
     bool AttemptToEvictConnection();
     CNode* ConnectNode(CAddress addrConnect, const char *pszDest, bool fCountFailure);
@@ -349,8 +356,6 @@ private:
     boost::thread threadMessageHandler;
 };
 void Discover(boost::thread_group& threadGroup);
-void MapPort(bool fUseUPnP);
-unsigned short GetListenPort();
 bool BindListenPort(const CService &bindAddr, std::string& strError, bool fWhitelisted = false);
 
 struct CombinerAll

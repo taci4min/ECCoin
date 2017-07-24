@@ -1,5 +1,4 @@
 #include "addrdb.h"
-
 #include "addrman.h"
 #include "clientversion.h"
 #include "fs.h"
@@ -7,6 +6,7 @@
 #include "util/random.h"
 #include "tinyformat.h"
 #include "util/util.h"
+#include "subnet.h"
 
 namespace {
 
@@ -16,13 +16,12 @@ bool SerializeDB(Stream& stream, const Data& data)
     // Write and commit header, data
     try {
         CHashWriter hasher(SER_DISK, CLIENT_VERSION);
-        stream << FLATDATA(Params().MessageStart()) << data;
-        hasher << FLATDATA(Params().MessageStart()) << data;
+        stream << FLATDATA(pchMessageStart) << data;
+        hasher << FLATDATA(pchMessageStart) << data;
         stream << hasher.GetHash();
     } catch (const std::exception& e) {
         return error("%s: Serialize or I/O error - %s", __func__, e.what());
     }
-
     return true;
 }
 
@@ -39,7 +38,7 @@ bool SerializeFileDB(const std::string& prefix, const fs::path& path, const Data
     FILE *file = fsbridge::fopen(pathTmp, "wb");
     CAutoFile fileout(file, SER_DISK, CLIENT_VERSION);
     if (fileout.IsNull())
-        return error("%s: Failed to open file %s", __func__, pathTmp.string());
+        return error("%s: Failed to open file %s", __func__, pathTmp.string().c_str());
 
     // Serialize
     if (!SerializeDB(fileout, data)) return false;
@@ -62,7 +61,7 @@ bool DeserializeDB(Stream& stream, Data& data, bool fCheckSum = true)
         unsigned char pchMsgTmp[4];
         verifier >> FLATDATA(pchMsgTmp);
         // ... verify the network matches ours
-        if (memcmp(pchMsgTmp, Params().MessageStart(), sizeof(pchMsgTmp)))
+        if (memcmp(pchMsgTmp, pchMessageStart, sizeof(pchMsgTmp)))
             return error("%s: Invalid network magic number", __func__);
 
         // de-serialize data
@@ -91,7 +90,7 @@ bool DeserializeFileDB(const fs::path& path, Data& data)
     FILE *file = fsbridge::fopen(path, "rb");
     CAutoFile filein(file, SER_DISK, CLIENT_VERSION);
     if (filein.IsNull())
-        return error("%s: Failed to open file %s", __func__, path.string());
+        return error("%s: Failed to open file %s", __func__, path.string().c_str());
 
     return DeserializeDB(filein, data);
 }
@@ -118,22 +117,22 @@ CAddrDB::CAddrDB()
     pathAddr = GetDataDir() / "peers.dat";
 }
 
-bool CAddrDB::Write(const CAddrMan& addr)
+bool CAddrDB::Write(const CAddrMan* addr)
 {
-    return SerializeFileDB("peers", pathAddr, addr);
+    return SerializeFileDB("peers", pathAddr, *addr);
 }
 
-bool CAddrDB::Read(CAddrMan& addr)
+bool CAddrDB::Read(CAddrMan* addr)
 {
-    return DeserializeFileDB(pathAddr, addr);
+    return DeserializeFileDB(pathAddr, *addr);
 }
 
-bool CAddrDB::Read(CAddrMan& addr, CDataStream& ssPeers)
+bool CAddrDB::Read(CAddrMan* addr, CDataStream& ssPeers)
 {
-    bool ret = DeserializeDB(ssPeers, addr, false);
+    bool ret = DeserializeDB(ssPeers, *addr, false);
     if (!ret) {
         // Ensure addrman is left in a clean state
-        addr.Clear();
+        addr->Clear();
     }
     return ret;
 }

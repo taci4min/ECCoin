@@ -31,7 +31,7 @@ public:
 
     void Init()
     {
-        hashBlock = uint256();
+        hashBlock.SetNull();
         nIndex = -1;
         fMerkleVerified = false;
     }

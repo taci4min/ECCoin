@@ -8,9 +8,9 @@
 class CDiskTxPos
 {
 public:
-    unsigned int nFile;
-    unsigned int nBlockPos;
-    unsigned int nTxPos;
+    uint32_t nFile;
+    uint32_t nBlockPos;
+    uint32_t nTxPos;
 
     CDiskTxPos();
     CDiskTxPos(unsigned int nFileIn, unsigned int nBlockPosIn, unsigned int nTxPosIn);
@@ -19,9 +19,26 @@ public:
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action) {
-        READWRITE(FLATDATA(*this));
+        READWRITE(nFile);
+        READWRITE(nBlockPos);
+        READWRITE(nTxPos);
+    }
+/*
+    template <typename Stream>
+    inline void Serialize(Stream& s) const {
+        s << nFile;
+        s << nBlockPos;
+        s << nTxPos;
     }
 
+
+    template <typename Stream>
+    inline void Unserialize(Stream& s) {
+        s >> nFile;
+        s >> nBlockPos;
+        s >> nTxPos;
+    }
+*/
     void SetNull();
     bool IsNull() const;
 

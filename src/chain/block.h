@@ -3,6 +3,7 @@
 
 #include "uint256.h"
 #include "serialize.h"
+#include "tx/tx.h"
 
 class CTxDB;
 class CKeyStore;
@@ -50,8 +51,8 @@ public:
     void SetNull()
     {
         nVersion = CBlockHeader::CURRENT_VERSION;
-        hashPrevBlock = uint256();
-        hashMerkleRoot = uint256();
+        hashPrevBlock.SetNull();
+        hashMerkleRoot.SetNull();
         nTime = 0;
         nBits = 0;
         nNonce = 0;

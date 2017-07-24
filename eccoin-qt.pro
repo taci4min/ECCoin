@@ -238,8 +238,6 @@ HEADERS += \
     src/tx/tx.h \
     src/tx/outpoint.h \
     src/tx/inpoint.h \
-    src/p2p/msgheaders.h \
-    src/p2p/msgprocessing.h \
     src/p2p/addrman.h \
     src/p2p/compat.h \
     src/p2p/mruset.h \
@@ -247,15 +245,12 @@ HEADERS += \
     src/p2p/net.h \
     src/p2p/netutils.h \
     src/p2p/node.h \
-    src/p2p/nodestats.h \
     src/p2p/protocol.h \
     src/p2p/proxyutils.h \
     src/p2p/service.h \
     src/p2p/subnet.h \
     src/p2p/socketutils.h \
-    src/p2p/msgcore.h \
     src/p2p/cnodestate.h \
-    src/p2p/netmsgtypes.h \
     src/shutdown.h \
     src/threads.h \
     src/p2p/connman.h \
@@ -264,19 +259,30 @@ HEADERS += \
     src/crypto/crypto_endian.h \
     src/crypto/byteswap.h \
     src/prevector.h \
-    src/arith_uint256.h
+    src/arith_uint256.h \
+    src/p2p/signals.h \
+    src/p2p/bloom.h \
+    src/crypto/sha256.h \
+    src/crypto/chacha20.h \
+    src/p2p/messages.h \
+    src/limitedmap.h \
+    src/scheduler.h \
+    src/reverselock.h \
+    src/p2p/processing.h
 
-
+# organize compiles of cpp files by section, this seems to be a logical order where the files lower down generally depend
+# on the ones higher up. also helps to observe how far into the compile process we are
 SOURCES += \
-    src/wallet/db.cpp \
-    src/fs.cpp \
     src/util/util.cpp \
     src/util/utiltime.cpp \
     src/util/utilstrencodings.cpp \
     src/util/utilmoneystr.cpp \
     src/util/utilexceptions.cpp \
-    src/rpc/rpcnet.cpp \
-    src/rpc/rpcwallet.cpp \
+    src/util/random.cpp \
+#
+    src/uint256.cpp \
+    src/arith_uint256.cpp \
+    src/fs.cpp \
     src/global.cpp \
     src/init.cpp \
     src/key.cpp \
@@ -286,34 +292,39 @@ SOURCES += \
     src/script.cpp \
     src/sync.cpp \
     src/version.cpp \
+    src/shutdown.cpp \
+    src/threads.cpp \
+    src/scheduler.cpp \
+    src/validation.cpp \
+#
+    src/crypto/sha256.cpp \
+    src/crypto/chacha20.cpp \
     src/crypto/hash.cpp \
     src/crypto/scrypt.cpp \
-    src/rpc/bitcoinrpc.cpp \
-    src/rpc/rpcblockchain.cpp \
-    src/rpc/rpcdump.cpp \
-    src/rpc/rpcmining.cpp \
-    src/rpc/rpcrawtransaction.cpp \
+    src/crypto/pbkdf2.cpp \
+#
     src/chain/block.cpp \
     src/chain/blockindex.cpp \
     src/chain/chain.cpp \
     src/chain/checkpoints.cpp \
+    src/chain/locator.cpp \
+#
     src/tx/txdb-leveldb.cpp \
     src/tx/mempool.cpp \
-    src/chain/locator.cpp \
-    src/wallet/wallet.cpp \
-    src/wallet/walletdb.cpp \
     src/tx/merkletx.cpp \
     src/tx/tx.cpp \
-    src/util/random.cpp \
-    src/mining/kernel.cpp \
-    src/mining/miner.cpp \
     src/tx/disk.cpp \
-    src/crypto/pbkdf2.cpp \
-    src/wallet/crypter.cpp \
     src/tx/outpoint.cpp \
     src/tx/inpoint.cpp \
-    src/p2p/msgcore.cpp \
-    src/p2p/msgheaders.cpp \
+#
+    src/wallet/wallet.cpp \
+    src/wallet/walletdb.cpp \
+    src/wallet/crypter.cpp \
+    src/wallet/db.cpp \
+#
+    src/mining/kernel.cpp \
+    src/mining/miner.cpp \
+#
     src/p2p/addrman.cpp \
     src/p2p/net.cpp \
     src/p2p/netaddr.cpp \
@@ -324,15 +335,22 @@ SOURCES += \
     src/p2p/service.cpp \
     src/p2p/proxyutils.cpp \
     src/p2p/protocol.cpp \
-    src/p2p/msgprocessing.cpp \
     src/p2p/cnodestate.cpp \
-    src/p2p/netmsgtypes.cpp \
-    src/shutdown.cpp \
-    src/threads.cpp \
-    src/p2p/connman.cpp \
     src/p2p/addrdb.cpp \
-    src/uint256.cpp \
-    src/arith_uint256.cpp
+    src/p2p/signals.cpp \
+    src/p2p/bloom.cpp \
+    src/p2p/connman.cpp \
+    src/p2p/messages.cpp \
+    src/p2p/processing.cpp \
+#
+    src/rpc/bitcoinrpc.cpp \
+    src/rpc/rpcblockchain.cpp \
+    src/rpc/rpcdump.cpp \
+    src/rpc/rpcmining.cpp \
+    src/rpc/rpcrawtransaction.cpp \
+    src/rpc/rpcnet.cpp \
+    src/rpc/rpcwallet.cpp
+
 
 
 CODECFORTR = UTF-8

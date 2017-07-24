@@ -66,7 +66,7 @@ protected:
     bool ScanBatch(const CDataStream &key, std::string *value, bool *deleted) const;
 
     template<typename K, typename T>
-    bool Read(const K& key, T& value)
+    bool Read(K key, T& value)
     {
         CDataStream ssKey(SER_DISK, CLIENT_VERSION);
         ssKey.reserve(1000);

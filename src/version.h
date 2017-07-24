@@ -38,10 +38,4 @@ static const int MIN_PROTO_VERSION = 60033;
 // "sendheaders" command and announcing blocks with headers starts with this version
 static const int SENDHEADERS_VERSION = 60035;
 
-// BIP 0031, pong message, is enabled for all versions AFTER this one
-static const int BIP0031_VERSION = 60000;
-
-// "mempool" command, enhanced "getdata" behavior starts with this version:
-static const int MEMPOOL_GD_VERSION = 60002;
-
 #endif

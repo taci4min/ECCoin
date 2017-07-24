@@ -193,29 +193,40 @@ enum
 
 
 
-template<typename Stream> inline void Serialize(Stream& s, char a    ) { ser_writedata8(s, a); } // TODO Get rid of bare char
-template<typename Stream> inline void Serialize(Stream& s, int8_t a  ) { ser_writedata8(s, a); }
-template<typename Stream> inline void Serialize(Stream& s, uint8_t a ) { ser_writedata8(s, a); }
-template<typename Stream> inline void Serialize(Stream& s, int16_t a ) { ser_writedata16(s, a); }
-template<typename Stream> inline void Serialize(Stream& s, uint16_t a) { ser_writedata16(s, a); }
-template<typename Stream> inline void Serialize(Stream& s, int32_t a ) { ser_writedata32(s, a); }
-template<typename Stream> inline void Serialize(Stream& s, uint32_t a) { ser_writedata32(s, a); }
-template<typename Stream> inline void Serialize(Stream& s, int64_t a ) { ser_writedata64(s, a); }
-template<typename Stream> inline void Serialize(Stream& s, uint64_t a) { ser_writedata64(s, a); }
-template<typename Stream> inline void Serialize(Stream& s, float a   ) { ser_writedata32(s, ser_float_to_uint32(a)); }
-template<typename Stream> inline void Serialize(Stream& s, double a  ) { ser_writedata64(s, ser_double_to_uint64(a)); }
+template<typename Stream> inline void Serialize(Stream& s, char a    )     { ser_writedata8(s, a); } // TODO Get rid of bare char
+template<typename Stream> inline void Serialize(Stream& s, int8_t a  )     { ser_writedata8(s, a); }
+template<typename Stream> inline void Serialize(Stream& s, uint8_t a )     { ser_writedata8(s, a); }
+template<typename Stream> inline void Serialize(Stream& s, int16_t a )     { ser_writedata16(s, a); }
+template<typename Stream> inline void Serialize(Stream& s, uint16_t a)     { ser_writedata16(s, a); }
+template<typename Stream> inline void Serialize(Stream& s, int32_t a )     { ser_writedata32(s, a); }
+template<typename Stream> inline void Serialize(Stream& s, uint32_t a)     { ser_writedata32(s, a); }
+template<typename Stream> inline void Serialize(Stream& s, int64_t a )     { ser_writedata64(s, a); }
+template<typename Stream> inline void Serialize(Stream& s, uint64_t a)     { ser_writedata64(s, a); }
+template<typename Stream> inline void Serialize(Stream& s, float a   )     { ser_writedata32(s, ser_float_to_uint32(a)); }
+template<typename Stream> inline void Serialize(Stream& s, double a  )     { ser_writedata64(s, ser_double_to_uint64(a)); }
 
-template<typename Stream> inline void Unserialize(Stream& s, char& a    ) { a = ser_readdata8(s); } // TODO Get rid of bare char
-template<typename Stream> inline void Unserialize(Stream& s, int8_t& a  ) { a = ser_readdata8(s); }
-template<typename Stream> inline void Unserialize(Stream& s, uint8_t& a ) { a = ser_readdata8(s); }
-template<typename Stream> inline void Unserialize(Stream& s, int16_t& a ) { a = ser_readdata16(s); }
-template<typename Stream> inline void Unserialize(Stream& s, uint16_t& a) { a = ser_readdata16(s); }
-template<typename Stream> inline void Unserialize(Stream& s, int32_t& a ) { a = ser_readdata32(s); }
-template<typename Stream> inline void Unserialize(Stream& s, uint32_t& a) { a = ser_readdata32(s); }
-template<typename Stream> inline void Unserialize(Stream& s, int64_t& a ) { a = ser_readdata64(s); }
-template<typename Stream> inline void Unserialize(Stream& s, uint64_t& a) { a = ser_readdata64(s); }
-template<typename Stream> inline void Unserialize(Stream& s, float& a   ) { a = ser_uint32_to_float(ser_readdata32(s)); }
-template<typename Stream> inline void Unserialize(Stream& s, double& a  ) { a = ser_uint64_to_double(ser_readdata64(s)); }
+
+template<typename Stream> inline void Unserialize(Stream& s, char& a    )     { a = ser_readdata8(s); } // TODO Get rid of bare char
+template<typename Stream> inline void Unserialize(Stream& s, int8_t& a  )     { a = ser_readdata8(s); }
+template<typename Stream> inline void Unserialize(Stream& s, uint8_t& a )     { a = ser_readdata8(s); }
+template<typename Stream> inline void Unserialize(Stream& s, int16_t& a )     { a = ser_readdata16(s); }
+template<typename Stream> inline void Unserialize(Stream& s, uint16_t& a)     { a = ser_readdata16(s); }
+template<typename Stream> inline void Unserialize(Stream& s, int32_t& a )     { a = ser_readdata32(s); }
+template<typename Stream> inline void Unserialize(Stream& s, uint32_t& a)     { a = ser_readdata32(s); }
+template<typename Stream> inline void Unserialize(Stream& s, int64_t& a )     { a = ser_readdata64(s); }
+template<typename Stream> inline void Unserialize(Stream& s, uint64_t& a)     { a = ser_readdata64(s); }
+template<typename Stream> inline void Unserialize(Stream& s, float& a   )     { a = ser_uint32_to_float(ser_readdata32(s)); }
+template<typename Stream> inline void Unserialize(Stream& s, double& a  )     { a = ser_uint64_to_double(ser_readdata64(s)); }
+
+/*
+template<typename Stream> inline void Unserialize(Stream& s, unsigned int& a)
+{
+    if(sizeof(a) == 32)
+        a = ser_readdata32(s);
+    else
+        a = ser_readdata64(s);
+}
+*/
 
 template<typename Stream> inline void Serialize(Stream& s, bool a)    { char f=a; ser_writedata8(s, f); }
 template<typename Stream> inline void Unserialize(Stream& s, bool& a) { char f=ser_readdata8(s); a=f; }
@@ -520,6 +531,13 @@ template<typename Stream, typename T, typename A> inline void Unserialize(Stream
 template<typename Stream, typename K, typename T> void Serialize(Stream& os, const std::pair<K, T>& item);
 template<typename Stream, typename K, typename T> void Unserialize(Stream& is, std::pair<K, T>& item);
 
+// 3 tuple
+template<typename Stream, typename T0, typename T1, typename T2> void Serialize(Stream& os, const boost::tuple<T0, T1, T2>& item);
+template<typename Stream, typename T0, typename T1, typename T2> void Unserialize(Stream& is, boost::tuple<T0, T1, T2>& item);
+
+// 4 tuple
+template<typename Stream, typename T0, typename T1, typename T2, typename T3> void Serialize(Stream& os, const boost::tuple<T0, T1, T2, T3>& item);
+template<typename Stream, typename T0, typename T1, typename T2, typename T3> void Unserialize(Stream& is, boost::tuple<T0, T1, T2, T3>& item);
 
 // map
 template<typename Stream, typename K, typename T, typename Pred, typename A> void Serialize(Stream& os, const std::map<K, T, Pred, A>& m);
@@ -711,6 +729,24 @@ void Unserialize_impl(Stream& is, std::vector<T, A>& v, const V&)
 }
 
 template<typename Stream, typename T, typename A>
+void Unserialize_impl(Stream& is, std::vector<T, A>& v, boost::false_type&)
+{
+    v.clear();
+    unsigned int nSize = ReadCompactSize(is);
+    unsigned int i = 0;
+    unsigned int nMid = 0;
+    while (nMid < nSize)
+    {
+        nMid += 5000000 / sizeof(T);
+        if (nMid > nSize)
+            nMid = nSize;
+        v.resize(nMid);
+        for (; i < nMid; i++)
+            Unserialize(is, v[i]);
+    }
+}
+
+template<typename Stream, typename T, typename A>
 inline void Unserialize(Stream& is, std::vector<T, A>& v)
 {
     Unserialize_impl(is, v, T());
@@ -732,6 +768,49 @@ void Unserialize(Stream& is, std::pair<K, T>& item)
 {
     Unserialize(is, item.first);
     Unserialize(is, item.second);
+}
+
+
+//
+// 3 tuple
+//
+template<typename Stream, typename T0, typename T1, typename T2>
+void Serialize(Stream& os, const boost::tuple<T0, T1, T2>& item)
+{
+    Serialize(os, boost::get<0>(item));
+    Serialize(os, boost::get<1>(item));
+    Serialize(os, boost::get<2>(item));
+}
+
+template<typename Stream, typename T0, typename T1, typename T2>
+void Unserialize(Stream& is, boost::tuple<T0, T1, T2>& item)
+{
+    Unserialize(is, boost::get<0>(item));
+    Unserialize(is, boost::get<1>(item));
+    Unserialize(is, boost::get<2>(item));
+}
+
+
+
+//
+// 4 tuple
+//
+template<typename Stream, typename T0, typename T1, typename T2, typename T3>
+void Serialize(Stream& os, const boost::tuple<T0, T1, T2, T3>& item)
+{
+    Serialize(os, boost::get<0>(item));
+    Serialize(os, boost::get<1>(item));
+    Serialize(os, boost::get<2>(item));
+    Serialize(os, boost::get<3>(item));
+}
+
+template<typename Stream, typename T0, typename T1, typename T2, typename T3>
+void Unserialize(Stream& is, boost::tuple<T0, T1, T2, T3>& item)
+{
+    Unserialize(is, boost::get<0>(item));
+    Unserialize(is, boost::get<1>(item));
+    Unserialize(is, boost::get<2>(item));
+    Unserialize(is, boost::get<3>(item));
 }
 
 //

@@ -79,9 +79,9 @@ private:
     fs::path pathAddr;
 public:
     CAddrDB();
-    bool Write(const CAddrMan& addr);
-    bool Read(CAddrMan& addr);
-    static bool Read(CAddrMan& addr, CDataStream& ssPeers);
+    bool Write(const CAddrMan* addr);
+    bool Read(CAddrMan* addr);
+    static bool Read(CAddrMan* addr, CDataStream& ssPeers);
 };
 
 /** Access to the banlist database (banlist.dat) */

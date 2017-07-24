@@ -13,7 +13,7 @@ int CMerkleTx::SetMerkleBranch(const CBlock* pblock)
 {
     if (fClient)
     {
-        if (hashBlock == 0)
+        if (hashBlock == uint256())
             return 0;
     }
     else
@@ -62,7 +62,7 @@ int CMerkleTx::SetMerkleBranch(const CBlock* pblock)
 
 int CMerkleTx::GetDepthInMainChainINTERNAL(CBlockIndex* &pindexRet) const
 {
-    if (hashBlock == 0 || nIndex == -1)
+    if (hashBlock == uint256() || nIndex == -1)
         return 0;
 
     // Find the block it claims to be in

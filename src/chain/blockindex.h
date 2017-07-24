@@ -118,9 +118,9 @@ public:
 
     CDiskBlockIndex()
     {
-        hashPrev = uint256();
-        hashNext = uint256();
-        blockHash = uint256();
+        hashPrev.SetNull();
+        hashNext.SetNull();
+        blockHash.SetNull();
     }
 
     explicit CDiskBlockIndex(CBlockIndex* pindex) : CBlockIndex(*pindex)
@@ -156,7 +156,7 @@ public:
         {
             const_cast<CDiskBlockIndex*>(this)->prevoutStake.SetNull();
             const_cast<CDiskBlockIndex*>(this)->nStakeTime = 0;
-            const_cast<CDiskBlockIndex*>(this)->hashProofOfStake = uint256();
+            const_cast<CDiskBlockIndex*>(this)->hashProofOfStake.SetNull();
         }
 
         // block header

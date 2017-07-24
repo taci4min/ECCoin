@@ -294,7 +294,7 @@ bool CTxDB::WriteCheckpointPubKey(const string& strPubKey)
 
 CBlockIndex *InsertBlockIndex(uint256 hash)
 {
-    if (hash == 0)
+    if (hash == uint256())
         return NULL;
 
     // Return existing
@@ -324,7 +324,7 @@ bool LoadBlockIndexInternal()
     leveldb::Iterator *SmallIterator = hcdb.getInternalPointer()->NewIterator(leveldb::ReadOptions());
     // Seek to start key.
     CDataStream smallStartKey(SER_DISK, CLIENT_VERSION);
-    smallStartKey << make_pair(string("blockindex"), uint256(0));
+    smallStartKey << make_pair(string("blockindex"), uint256());
     SmallIterator->Seek(smallStartKey.str());
 
     //get the total number of blocks we have on the disk
@@ -363,7 +363,7 @@ bool LoadBlockIndexInternal()
     {
         leveldb::Iterator *iterator = hcdb.getInternalPointer()->NewIterator(leveldb::ReadOptions());
         CDataStream ssStartKey(SER_DISK, CLIENT_VERSION);
-        ssStartKey << make_pair(string("indexheader"), uint256(0));
+        ssStartKey << make_pair(string("indexheader"), uint256());
         iterator->Seek(ssStartKey.str());
         while (iterator->Valid())
         {
@@ -418,7 +418,7 @@ bool LoadBlockIndexInternal()
     {
         leveldb::Iterator *iterator = itxdb.getInternalPointer()->NewIterator(leveldb::ReadOptions());
         CDataStream ssStartKey(SER_DISK, CLIENT_VERSION);
-        ssStartKey << make_pair(string("blockindex"), uint256(0));
+        ssStartKey << make_pair(string("blockindex"), uint256());
         iterator->Seek(ssStartKey.str());
         while (iterator->Valid())
         {
@@ -500,7 +500,8 @@ bool LoadBlockIndexInternal()
     if (fRequestShutdown)
         return true;
     // Load hashBestChain pointer to end of best chain
-    uint256 bestReadHash = 0;
+    uint256 bestReadHash;
+    bestReadHash.SetNull();
     if (!itxdb.ReadHashBestChain(bestReadHash))
     {
         if (pindexGenesisBlock == NULL)
@@ -556,7 +557,7 @@ bool LoadBlockIndexInternal()
     // Load bnBestInvalidTrust, OK if it doesn't exist
     CBigNum bnBestInvalidTrust;
     itxdb.ReadBestInvalidTrust(bnBestInvalidTrust);
-    nBestInvalidTrust = bnBestInvalidTrust.getuint256();
+    nBestInvalidTrust = UintToArith256(bnBestInvalidTrust.getuint256());
 
     // Verify blocks in the best chain
     int nCheckLevel = GetArg("-checklevel", 1);

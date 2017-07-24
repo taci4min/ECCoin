@@ -734,11 +734,11 @@ int64_t CTransaction::GetValueOut() const
 bool CTransaction::ReadFromDisk(CDiskTxPos pos, FILE** pfileRet)
 {
     CAutoFile filein = CAutoFile(OpenBlockFile(pos.nFile, 0, pfileRet ? "rb+" : "rb"), SER_DISK, CLIENT_VERSION);
-    if (!filein)
+    if (filein.IsNull())
         return error("CTransaction::ReadFromDisk() : OpenBlockFile failed");
 
     // Read transaction
-    if (fseek(filein, pos.nTxPos, SEEK_SET) != 0)
+    if (fseek(filein.Get(), pos.nTxPos, SEEK_SET) != 0)
         return error("CTransaction::ReadFromDisk() : fseek failed");
 
     try {
@@ -751,7 +751,7 @@ bool CTransaction::ReadFromDisk(CDiskTxPos pos, FILE** pfileRet)
     // Return file pointer
     if (pfileRet)
     {
-        if (fseek(filein, pos.nTxPos, SEEK_SET) != 0)
+        if (fseek(filein.Get(), pos.nTxPos, SEEK_SET) != 0)
             return error("CTransaction::ReadFromDisk() : second fseek failed");
         *pfileRet = filein.release();
     }

@@ -1,4 +1,9 @@
 #include <thread>
+#include "util/util.h"
+#include "init.h"
+#include "tx/txdb-leveldb.h"
+#include "chain/chain.h"
+#include "p2p/addrman.h"
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -25,20 +30,14 @@ bool StopNode()
     LogPrintf("StopNode()\n");
     fShutdown = true;
     nTransactionsUpdated++;
-    if (semOutbound)
-    {
-        for (int i=0; i<MAX_OUTBOUND_CONNECTIONS; i++)
-        {
-            semOutbound->post();
-        }
-    }
+    pconnman->Interrupt();
     ecc_threads.join_all();
     MilliSleep(500);
     int64_t nStart = GetTimeMillis();
     CAddrDB adb;
-    adb.Write(addrman);
+    adb.Write(pconnman->GetAddrMan());
     LogPrintf("Flushed %d addresses to peers.dat  %d ms\n",
-           addrman.size(), GetTimeMillis() - nStart);
+           pconnman->GetAddressCount(), GetTimeMillis() - nStart);
     return true;
 }
 

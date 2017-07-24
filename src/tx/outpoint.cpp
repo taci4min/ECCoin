@@ -13,12 +13,12 @@ COutPoint::COutPoint(uint256 hashIn, unsigned int nIn)
 
 void COutPoint::SetNull()
 {
-    hash = 0;
+    hash.SetNull();
     n = (unsigned int) -1;
 }
 bool COutPoint::IsNull() const
 {
-    return (hash == 0 && n == (unsigned int) -1);
+    return (hash == uint256() && n == (unsigned int) -1);
 }
 
 std::string COutPoint::ToString() const

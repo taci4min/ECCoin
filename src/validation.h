@@ -11,6 +11,8 @@
 #include "global.h"
 #include "main.h"
 
+class CBlockLocator;
+
 /** "reject" message codes */
 static const unsigned char REJECT_MALFORMED = 0x01;
 static const unsigned char REJECT_INVALID = 0x10;
@@ -87,5 +89,8 @@ public:
     std::string GetRejectReason() const { return strRejectReason; }
     std::string GetDebugMessage() const { return strDebugMessage; }
 };
+
+/** Find the last common block between the parameter chain and a locator. */
+CBlockIndex* FindForkInGlobalIndex(const CBlockLocator& locator);
 
 #endif // VALIDATION_H

@@ -7,6 +7,10 @@
 
 static const unsigned char pchIPv4[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff };
 
+// 0xFD + sha256("eccoin")[0:5]
+static const unsigned char g_internal_prefix[] = { 0xFD, 0x04, 0x7f, 0xe7, 0xa9, 0xc4 };
+
+
 void CNetAddr::Init()
 {
     memset(ip, 0, 16);
@@ -170,6 +174,18 @@ bool CNetAddr::IsLocal() const
        return true;
 
    return false;
+}
+
+bool CNetAddr::SetInternal(const std::string &name)
+{
+    if (name.empty()) {
+        return false;
+    }
+    unsigned char hash[32] = {};
+    CSHA256().Write((const unsigned char*)name.data(), name.size()).Finalize(hash);
+    memcpy(ip, g_internal_prefix, sizeof(g_internal_prefix));
+    memcpy(ip + sizeof(g_internal_prefix), hash, sizeof(ip) - sizeof(g_internal_prefix));
+    return true;
 }
 
 bool CNetAddr::IsMulticast() const

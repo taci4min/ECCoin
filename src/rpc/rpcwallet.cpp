@@ -11,7 +11,6 @@
 #include "base58.h"
 #include "p2p/proxyutils.h"
 #include <boost/thread.hpp>
-#include "daemon.h"
 
 using namespace json_spirit;
 using namespace std;
@@ -97,7 +96,8 @@ Value getinfo(const Array& params, bool fHelp)
     obj.push_back(Pair("moneysupply",   ValueFromAmount(pindexBest->nMoneySupply)));
     obj.push_back(Pair("connections",   (int)pconnman->GetNodeCount(CConnman::CONNECTIONS_ALL)));
     obj.push_back(Pair("proxy",         (proxy.first.IsValid() ? proxy.first.ToStringIPPort() : string())));
-    obj.push_back(Pair("ip",            addrSeenByPeer.ToStringIP()));
+// TODO reimplement ip into getinfo
+    //obj.push_back(Pair("ip",            addrSeenByPeer.ToStringIP()));
 
     diff.push_back(Pair("proof-of-work",  GetDifficulty()));
     diff.push_back(Pair("proof-of-stake", GetDifficulty(GetLastBlockIndex(pindexBest, true))));
@@ -1250,7 +1250,8 @@ Value listsinceblock(const Array& params, bool fHelp)
 
     if (params.size() > 0)
     {
-        uint256 blockId = uint256();
+        uint256 blockId;
+        blockId.SetNull();
 
         blockId.SetHex(params[0].get_str());
         pindex = CBlockLocator(blockId).GetBlockIndex();
@@ -1337,7 +1338,8 @@ Value gettransaction(const Array& params, bool fHelp)
     else
     {
         CTransaction tx;
-        uint256 hashBlock = uint256();
+        uint256 hashBlock;
+        hashBlock.SetNull();
         if (GetTransaction(hash, tx, hashBlock))
         {
             TxToJSON(tx, uint256(), entry);
