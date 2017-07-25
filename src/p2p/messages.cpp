@@ -190,7 +190,7 @@ bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, bool f
 // Requires cs_main.
 // returns false, still setting pit, if the block was already in flight from the same peer
 // pit will only be valid as long as the same cs_main lock is being held
-bool MarkBlockAsInFlight(NodeId nodeid, const uint256& hash, const CBlockIndex* pindex = NULL, std::list<QueuedBlock>::iterator** pit = NULL) {
+bool MarkBlockAsInFlight(NodeId nodeid, const uint256& hash, const CBlockIndex* pindex, std::list<QueuedBlock>::iterator** pit) {
     CNodeState *state = State(nodeid);
     assert(state != NULL);
 
@@ -1005,7 +1005,7 @@ bool ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStream& vR
     {
         std::deque<uint256> vWorkQueue;
         std::vector<uint256> vEraseQueue;
-        const CTransaction tx;
+        CTransaction tx;
         CTxDB txdb("r");
         vRecv >> tx;
 

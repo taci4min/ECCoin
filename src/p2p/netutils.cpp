@@ -7,7 +7,7 @@
 #include "node.h"
 #include "init.h"
 
-#ifdef __linux__
+#ifndef WIN32
 #include <netinet/tcp.h>
 #endif
 

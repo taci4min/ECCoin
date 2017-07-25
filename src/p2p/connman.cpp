@@ -6,10 +6,9 @@
 #include "proxyutils.h"
 #include "compat.h"
 
-#ifdef __linux__
+#ifndef WIN32
 #include <netinet/tcp.h>
 #endif
-
 
 void CConnman::AddOneShot(const std::string& strDest)
 {

@@ -7,6 +7,8 @@
 #include "wallet.h"
 #include <boost/version.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/tuple/tuple.hpp>
+
 
 using namespace std;
 using namespace boost;

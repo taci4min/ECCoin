@@ -540,8 +540,6 @@ bool CheckWork(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey)
 void ThreadBitcoinMiner(void* parg);
 
 static bool fGenerateBitcoins = false;
-static bool fLimitProcessors = false;
-static int nLimitProcessors = -1;
 
 void ScryptMiner(CWallet *pwallet, bool fProofOfStake)
 {

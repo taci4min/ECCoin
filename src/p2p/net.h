@@ -3,6 +3,7 @@
 
 #include <deque>
 
+#include "streams.h"
 #include "amount.h"
 #include "sync.h"
 #include "service.h"

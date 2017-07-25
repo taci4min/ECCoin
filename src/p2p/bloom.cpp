@@ -2,7 +2,7 @@
 #include "tx/outpoint.h"
 #include "util/random.h"
 #include "tx/tx.h"
-
+#include "streams.h"
 #include <math.h>
 #include <stdlib.h>
 #include <boost/foreach.hpp>

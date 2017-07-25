@@ -368,9 +368,6 @@ bool CBlock::ReadFromDisk(unsigned int nFile, unsigned int nBlockPos, bool fRead
     CAutoFile filein = CAutoFile(OpenBlockFile(nFile, nBlockPos, "rb"), SER_DISK, CLIENT_VERSION);
     if (filein.IsNull())
         return error("CBlock::ReadFromDisk() : OpenBlockFile failed");
-    if (!fReadTransactions)
-        filein.nType |= SER_BLOCKHEADERONLY;
-
     // Read block
     try {
         filein >> *this;

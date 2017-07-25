@@ -12,6 +12,8 @@
 #include "utiltime.h"
 #include "threadsafety.h"
 #include "p2p/compat.h"
+#include "version.h"
+
 
 #if (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__DragonFly__))
 #include <pthread.h>
@@ -122,9 +124,6 @@ void locking_callback(int mode, int i, const char* file, int line) NO_THREAD_SAF
         LEAVE_CRITICAL_SECTION(ppmutexOpenSSL[i]);
     }
 }
-
-LockedPageManager LockedPageManager::instance;
-
 
 // Singleton for wrapping OpenSSL setup/teardown.
 class CInit

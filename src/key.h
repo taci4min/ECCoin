@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include "allocators.h"
+#include "secure.h"
 #include "serialize.h"
 #include "uint256.h"
 #include "crypto/hash.h"

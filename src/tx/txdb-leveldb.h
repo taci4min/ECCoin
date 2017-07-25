@@ -13,7 +13,7 @@
 #include "uint256.h"
 #include "serialize.h"
 #include "bignum.h"
-
+#include "streams.h"
 #include "chain/blockindex.h"
 #include "tx.h"
 

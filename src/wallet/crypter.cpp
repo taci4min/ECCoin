@@ -19,7 +19,8 @@ bool CCrypter::SetKeyFromPassphrase(const SecureString& strKeyData, const std::v
     if (nDerivationMethod == 0)
     {
         i = EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha512(), &chSalt[0],
-                          (unsigned char *)&strKeyData[0], strKeyData.size(), nRounds, chKey, chIV);
+                          (unsigned char *)&strKeyData[0], strKeyData.size(), nRounds, reinterpret_cast<unsigned char*>(chKey.data()),
+                reinterpret_cast<unsigned char*>(chIV.data()));
     }
 
     if (nDerivationMethod == 1)
@@ -28,7 +29,8 @@ bool CCrypter::SetKeyFromPassphrase(const SecureString& strKeyData, const std::v
         uint256 scryptHash = scrypt_salted_multiround_hash((const void*)strKeyData.c_str(), strKeyData.size(), &chSalt[0], 8, nRounds);
 
         i = EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha512(), &chSalt[0],
-                          (unsigned char *)&scryptHash, sizeof scryptHash, nRounds, chKey, chIV);
+                          (unsigned char *)&scryptHash, sizeof scryptHash, nRounds, reinterpret_cast<unsigned char*>(chKey.data()),
+                reinterpret_cast<unsigned char*>(chIV.data()));
         OPENSSL_cleanse(&scryptHash, sizeof scryptHash);
     }
 
@@ -72,7 +74,9 @@ bool CCrypter::Encrypt(const CKeyingMaterial& vchPlaintext, std::vector<unsigned
     bool fOk = true;
 
     EVP_CIPHER_CTX_init(&ctx);
-    if (fOk) fOk = EVP_EncryptInit_ex(&ctx, EVP_aes_256_cbc(), NULL, chKey, chIV);
+    if (fOk) fOk = EVP_EncryptInit_ex(&ctx, EVP_aes_256_cbc(), NULL,
+                                      reinterpret_cast<unsigned char*>(chKey.data()),
+                                      reinterpret_cast<unsigned char*>(chIV.data()));
     if (fOk) fOk = EVP_EncryptUpdate(&ctx, &vchCiphertext[0], &nCLen, &vchPlaintext[0], nLen);
     if (fOk) fOk = EVP_EncryptFinal_ex(&ctx, (&vchCiphertext[0])+nCLen, &nFLen);
     EVP_CIPHER_CTX_cleanup(&ctx);
@@ -99,7 +103,9 @@ bool CCrypter::Decrypt(const std::vector<unsigned char>& vchCiphertext, CKeyingM
     bool fOk = true;
 
     EVP_CIPHER_CTX_init(&ctx);
-    if (fOk) fOk = EVP_DecryptInit_ex(&ctx, EVP_aes_256_cbc(), NULL, chKey, chIV);
+    if (fOk) fOk = EVP_DecryptInit_ex(&ctx, EVP_aes_256_cbc(), NULL,
+                                      reinterpret_cast<unsigned char*>(chKey.data()),
+                                      reinterpret_cast<unsigned char*>(chIV.data()));
     if (fOk) fOk = EVP_DecryptUpdate(&ctx, &vchPlaintext[0], &nPLen, &vchCiphertext[0], nLen);
     if (fOk) fOk = EVP_DecryptFinal_ex(&ctx, (&vchPlaintext[0])+nPLen, &nFLen);
     EVP_CIPHER_CTX_cleanup(&ctx);

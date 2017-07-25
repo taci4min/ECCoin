@@ -177,7 +177,6 @@ QMAKE_CXXFLAGS_WARN_ON = -fdiagnostics-show-option -Wall -Wextra -Wformat -Wform
 DEPENDPATH += src src/json
 
 HEADERS += \
-    src/allocators.h \
     src/base58.h \
     src/bignum.h \
     src/clientversion.h \
@@ -268,7 +267,11 @@ HEADERS += \
     src/limitedmap.h \
     src/scheduler.h \
     src/reverselock.h \
-    src/p2p/processing.h
+    src/p2p/processing.h \
+    src/streams.h \
+    src/zeroafterfree.h \
+    src/secure.h \
+    src/lockedpool.h
 
 # organize compiles of cpp files by section, this seems to be a logical order where the files lower down generally depend
 # on the ones higher up. also helps to observe how far into the compile process we are
@@ -349,7 +352,8 @@ SOURCES += \
     src/rpc/rpcmining.cpp \
     src/rpc/rpcrawtransaction.cpp \
     src/rpc/rpcnet.cpp \
-    src/rpc/rpcwallet.cpp
+    src/rpc/rpcwallet.cpp \
+    src/lockedpool.cpp
 
 
 
