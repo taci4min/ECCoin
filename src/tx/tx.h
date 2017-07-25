@@ -264,44 +264,6 @@ enum GetMinFee_mode
 typedef std::map<uint256, std::pair<CTxIndex, CTransaction> > MapPrevTx;
 
 
-/** A mutable version of CTransaction. */
-struct CMutableTransaction
-{
-    int32_t nVersion;
-    std::vector<CTxIn> vin;
-    std::vector<CTxOut> vout;
-    uint32_t nLockTime;
-
-    CMutableTransaction();
-    CMutableTransaction(const CTransaction& tx);
-
-    template <typename Stream>
-    inline void Serialize(Stream& s) const {
-        SerializeTransaction(*this, s);
-    }
-
-
-    template <typename Stream>
-    inline void Unserialize(Stream& s) {
-        UnserializeTransaction(*this, s);
-    }
-
-    template <typename Stream>
-    CMutableTransaction(deserialize_type, Stream& s) {
-        Unserialize(s);
-    }
-
-    /** Compute the hash of this CMutableTransaction. This is computed on the
-     * fly, as opposed to GetHash() in CTransaction, which uses a cached result.
-     */
-    uint256 GetHash() const;
-
-    friend bool operator==(const CMutableTransaction& a, const CMutableTransaction& b)
-    {
-        return a.GetHash() == b.GetHash();
-    }
-};
-
 /**
  * Basic transaction serialization format:
  * - int32_t nVersion
@@ -360,31 +322,17 @@ public:
         SetNull();
     }
 
-    /** Convert a CMutableTransaction into a CTransaction. */
-    CTransaction(const CMutableTransaction &tx) : nVersion(tx.nVersion),
-        vin(tx.vin),
-        vout(tx.vout),
-        nLockTime(tx.nLockTime) {}
-
-    CTransaction(const CMutableTransaction &&tx) : nVersion(tx.nVersion),
-        vin(std::move(tx.vin)),
-        vout(std::move(tx.vout)),
-        nLockTime(tx.nLockTime) {}
-
     template <typename Stream>
     inline void Serialize(Stream& s) const {
         SerializeTransaction(*this, s);
     }
+
 
     template <typename Stream>
     inline void Unserialize(Stream& s) {
         UnserializeTransaction(*this, s);
     }
 
-    /** This deserializing constructor is provided instead of an Unserialize method.
-     *  Unserialize is not possible, since it would require overwriting const fields. */
-    template <typename Stream>
-    CTransaction(deserialize_type, Stream& s) : CTransaction(CMutableTransaction(deserialize, s)) {}
 
     unsigned int GetTotalSize() const
     {

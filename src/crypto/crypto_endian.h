@@ -192,5 +192,5 @@ inline uint64_t le64toh(uint64_t little_endian_64bits)
 #endif // HAVE_DECL_LE64TOH
 
 #endif // WORDS_BIGENDIAN
-#endif // winows
+#endif // windows
 #endif // BITCOIN_COMPAT_ENDIAN_H

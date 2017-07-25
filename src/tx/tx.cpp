@@ -9,10 +9,6 @@
 
 using namespace std;
 
-CMutableTransaction::CMutableTransaction() : nVersion(CTransaction::CURRENT_VERSION), nLockTime(0) {}
-CMutableTransaction::CMutableTransaction(const CTransaction& tx) : nVersion(tx.nVersion), vin(tx.vin), vout(tx.vout), nLockTime(tx.nLockTime) {}
-
-
 void CTransaction::SetNull()
 {
     nVersion = CTransaction::CURRENT_VERSION;
@@ -30,7 +26,7 @@ bool CTransaction::IsNull() const
 
 uint256 CTransaction::GetHash() const
 {
-    return SerializeHash(*this);
+    return SerializeHash(*this, SER_GETHASH);
 }
 
 bool CTransaction::IsFinal(int nBlockHeight, int64_t nBlockTime) const

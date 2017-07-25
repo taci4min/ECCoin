@@ -28,7 +28,6 @@ class CWalletTx;
 class CReserveKey;
 class COutput;
 class CCoinControl;
-struct CMutableTransaction;
 class CWalletDB;
 
 
@@ -815,11 +814,11 @@ public:
     // True if only scriptSigs are different
     bool IsEquivalentTo(const CWalletTx& _tx) const
     {
-            CMutableTransaction tx1 = *this;
-            CMutableTransaction tx2 = _tx;
+            CTransaction tx1 = *this;
+            CTransaction tx2 = _tx;
             for (unsigned int i = 0; i < tx1.vin.size(); i++) tx1.vin[i].scriptSig = CScript();
             for (unsigned int i = 0; i < tx2.vin.size(); i++) tx2.vin[i].scriptSig = CScript();
-            return CTransaction(tx1) == CTransaction(tx2);
+            return tx1 == tx2;
     }
 
 

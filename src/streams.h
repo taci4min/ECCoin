@@ -339,7 +339,7 @@ public:
     void SetVersion(int n)       { nVersion = n; }
     int GetVersion() const       { return nVersion; }
 
-    void read(char* pch, size_t nSize)
+    CDataStream& read(char* pch, size_t nSize)
     {
         if (nSize == 0) return;
 
@@ -354,13 +354,14 @@ public:
             memcpy(pch, &vch[nReadPos], nSize);
             nReadPos = 0;
             vch.clear();
-            return;
+            return (*this);
         }
         memcpy(pch, &vch[nReadPos], nSize);
         nReadPos = nReadPosNext;
+        return (*this);
     }
 
-    void ignore(int nSize)
+    CDataStream& ignore(int nSize)
     {
         // Ignore from the beginning of the buffer
         if (nSize < 0) {
@@ -373,15 +374,17 @@ public:
                 throw std::ios_base::failure("CDataStream::ignore(): end of data");
             nReadPos = 0;
             vch.clear();
-            return;
+            return (*this);
         }
         nReadPos = nReadPosNext;
+        return (*this);
     }
 
-    void write(const char* pch, size_t nSize)
+    CDataStream& write(const char* pch, size_t nSize)
     {
         // Write to the end of the buffer
         vch.insert(vch.end(), pch, pch + nSize);
+        return (*this);
     }
 
     template<typename Stream>
