@@ -7,6 +7,17 @@
 #include "node.h"
 #include "init.h"
 
+#ifdef __linux__
+#include <netinet/tcp.h>
+#endif
+
+#ifdef USE_UPNP
+#include <miniupnpc/miniupnpc.h>
+#include <miniupnpc/miniwget.h>
+#include <miniupnpc/upnpcommands.h>
+#include <miniupnpc/upnperrors.h>
+#endif
+
 unsigned short GetListenPort()
 {
     return (unsigned short)(GetArg("-port", GetDefaultPort()));

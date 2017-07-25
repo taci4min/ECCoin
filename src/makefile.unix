@@ -30,6 +30,7 @@ LIBS += \
    -l boost_filesystem$(BOOST_LIB_SUFFIX) \
    -l boost_program_options$(BOOST_LIB_SUFFIX) \
    -l boost_thread$(BOOST_LIB_SUFFIX) \
+   -l boost_chrono$(BOOST_LIB_SUFFIX) \
    -l db_cxx$(BDB_LIB_SUFFIX) \
    -l ssl \
    -l event \
@@ -107,66 +108,83 @@ xCXXFLAGS=-O2 $(EXT_OPTIONS) -pthread -w -Wextra -Wno-ignored-qualifiers -Wforma
 xLDFLAGS=$(LDHARDENING) $(LDFLAGS)
 
 OBJS= \
-    build/version.o \
-    build/chain/checkpoints.o \
-    build/p2p/netaddr.o \
-    build/p2p/addrman.o \
-    build/wallet/crypter.o \
-    build/key.o \
-    build/wallet/db.o \
+    build/util/util.o \
+    build/util/utiltime.o \
+    build/util/utilstrencodings.o \
+    build/util/utilmoneystr.o \
+    build/util/utilexceptions.o \
+    build/util/random.o \
+\
+    build/uint256.o \
+    build/arith_uint256.o \
+    build/fs.o \
+    build/global.o \
     build/init.o \
+    build/key.o \
     build/keystore.o \
-    build/mining/miner.o \
     build/main.o \
-    build/p2p/net.o \
-    build/p2p/protocol.o \
+    build/noui.o \
     build/script.o \
     build/sync.o \
-    build/util/util.o \
+    build/version.o \
+    build/shutdown.o \
+    build/threads.o \
+    build/scheduler.o \
+    build/validation.o \
+\
+    build/crypto/sha256.o \
+    build/crypto/chacha20.o \
+    build/crypto/hash.o \
+    build/crypto/scrypt.o \
+    build/crypto/pbkdf2.o \
+\
+    build/chain/block.o \
+    build/chain/blockindex.o \
+    build/chain/chain.o \
+    build/chain/checkpoints.o \
+    build/chain/locator.o \
+\
+    build/tx/txdb-leveldb.o \
+    build/tx/mempool.o \
+    build/tx/merkletx.o \
+    build/tx/tx.o \
+    build/tx/disk.o \
+    build/tx/outpoint.o \
+    build/tx/inpoint.o \
+\
     build/wallet/wallet.o \
     build/wallet/walletdb.o \
-    build/noui.o \
+    build/wallet/crypter.o \
+    build/wallet/db.o \
+\
     build/mining/kernel.o \
-    build/crypto/pbkdf2.o \
-    build/chain/block.o \
-    build/global.o \
-    build/chain/chain.o \
-    build/chain/blockindex.o \
-    build/crypto/hash.o \
-    build/chain/locator.o \
-    build/tx/tx.o \
-    build/tx/merkletx.o \
-    build/tx/mempool.o \
-    build/crypto/scrypt.o \
+    build/mining/miner.o \
+\
+    build/p2p/addrman.o \
+    build/p2p/net.o \
+    build/p2p/netaddr.o \
     build/p2p/netutils.o \
     build/p2p/node.o \
-    build/p2p/proxyutils.o \
-    build/p2p/requests.o \
-    build/p2p/service.o \
+    build/p2p/subnet.o \
     build/p2p/socketutils.o \
-    build/util/utilexceptions.o \
-    build/util/utilmoneystr.o \
-    build/util/utilstrencodings.o \
-    build/util/utiltime.o \
-    build/util/random.o \
+    build/p2p/service.o \
+    build/p2p/proxyutils.o \
+    build/p2p/protocol.o \
+    build/p2p/cnodestate.o \
+    build/p2p/addrdb.o \
+    build/p2p/signals.o \
+    build/p2p/bloom.o \
+    build/p2p/connman.o \
+    build/p2p/messages.o \
+    build/p2p/processing.o \
+\
     build/rpc/bitcoinrpc.o \
     build/rpc/rpcblockchain.o \
     build/rpc/rpcdump.o \
     build/rpc/rpcmining.o \
-    build/rpc/rpcnet.o \
     build/rpc/rpcrawtransaction.o \
-    build/rpc/rpcwallet.o \
-    build/p2p/subnet.o \
-    build/tx/disk.o \
-    build/tx/inpoint.o \
-    build/tx/outpoint.o \
-    build/p2p/cnodestate.o \
-    build/p2p/msgcore.o \
-    build/p2p/msgheaders.o \
-    build/p2p/netmsgtypes.o \
-    build/p2p/msgprocessing.o \
-    build/fs.o \
-    build/daemon.o
+    build/rpc/rpcnet.o \
+    build/rpc/rpcwallet.o
 
 all: ECCoind
 
@@ -212,9 +230,7 @@ ECCoind: $(OBJS:build/%=build/%)
 clean:
 	-rm -f ECCoind
 	-rm -f build/*.o
-	-rm -f build/zerocoin/*.o
 	-rm -f build/*.P
-	-rm -f build/zerocoin/*.P
 	-rm -f build/build.h
 	-rm -f build/network/*.o
 	-rm -f build/network/*.P
@@ -224,8 +240,10 @@ clean:
 	-rm -f build/rpc/*.P
 	-rm -f build/crypto/*.o
 	-rm -f build/crypto/*.P
-	-rm -f build/univalue/*.o
-	-rm -f build/univalue/*.P
+	-rm -f build/p2p/*.o
+	-rm -f build/p2p/*.P
+	-rm -f build/wallet/*.o
+	-rm -f build/wallet/*.P
 
 
 
