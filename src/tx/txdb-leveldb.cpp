@@ -505,18 +505,25 @@ bool LoadBlockIndexInternal()
     if (!itxdb.ReadHashBestChain(bestReadHash))
     {
         if (pindexGenesisBlock == NULL)
+        {
+            LogPrintf("returning true because pindexGenesisBlock was null and we couldnt read it \n");
             return true;
+        }
         return error("CTxDB::LoadBlockIndex() : hashBestChain not loaded");
     }
+
     if (!mapBlockIndex.count(bestReadHash))
         return error("CTxDB::LoadBlockIndex() : hashBestChain not found in the block index");
 
+    LogPrintf("setting pindexBest \n");
     pindexBest = mapBlockIndex[bestReadHash];
+    LogPrintf("setting nBestChainTrust \n");
     nBestChainTrust = pindexBest->nChainTrust;
 
     int64_t nStartChecksums = GetTimeMillis();
 
     CBlockIndex* pindex = pindexGenesisBlock;
+    LogPrintf("about to start while loop for stake mods and on the fly chain fixes \n");
     while(pindex)
     {
         pindex->nChainTrust = (pindex->pprev ? pindex->pprev->nChainTrust : 0) + pindex->GetBlockTrust();
@@ -551,6 +558,7 @@ bool LoadBlockIndexInternal()
         }
         //pindex->BuildSkip();
         pindex = pindex->pnext;
+	LogPrintf("iterating to next index \n");
     }
     LogPrintf("Time To Makechecksums: %I64 ms\n", GetTimeMillis() - nStartChecksums);
 
@@ -571,18 +579,23 @@ bool LoadBlockIndexInternal()
     map<pair<unsigned int, unsigned int>, CBlockIndex*> mapBlockPos;
     for (CBlockIndex* pindex = pindexBest; pindex && pindex->pprev; pindex = pindex->pprev)
     {
+	LogPrintf("height checked = %d \n", pindex->nHeight);
         if (fRequestShutdown || pindex->nHeight < pindexBest->nHeight-nCheckDepth)
             break;
+	LogPrintf("not done, not breaking \n");
         CBlock block;
+	LogPrintf("about to read block from disk");
         if (!block.ReadFromDisk(pindex))
             return error("LoadBlockIndex() : block.ReadFromDisk failed");
         // check level 1: verify block validity
         // check level 7: verify block signature too
+	LogPrintf("about to run block.checblock \n");
         if (nCheckLevel>0 && !block.CheckBlock(true, true, (nCheckLevel>6)))
         {
             LogPrintf("LoadBlockIndex() : *** found bad block at %d, hash=%s\n", pindex->nHeight, pindex->GetBlockHash().ToString().c_str());
             pindexFork = pindex->pprev;
         }
+	LogPrintf("check block passed \n");
         // check level 2: verify transaction index validity
         if (nCheckLevel>1)
         {

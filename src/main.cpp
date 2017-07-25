@@ -731,14 +731,18 @@ bool LoadBlockIndex(bool fAllowNew)
         txNew.nTime = nChainStartTime;
         txNew.vin.resize(1);
         txNew.vout.resize(1);
+        LogPrintf("about to set script sig \n");
         txNew.vin[0].scriptSig =  CScript() << 486604799 << CBigNum(9999) << vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
+        LogPrintf("set script size \n");
         txNew.vout[0].SetEmpty();
         txNew.vout[0].SetEmpty();
         CBlock block;
 
         block.vtx.push_back(txNew);
         block.hashPrevBlock.SetNull();
+        LogPrintf("about to build merkel tree \n");
         block.hashMerkleRoot = block.BuildMerkleTree();
+        LogPrintf("built merkel tree \n");
         block.nVersion = 1;
         block.nTime    = 1393744307;
         block.nBits    = UintToArith256(bnProofOfWorkLimit).GetCompact();
@@ -767,11 +771,13 @@ bool LoadBlockIndex(bool fAllowNew)
         // Start new block file
         unsigned int nFile;
         unsigned int nBlockPos;
+        LogPrintf("about to write to disk \n");
         if (!block.WriteToDisk(nFile, nBlockPos))
             return error("LoadBlockIndex() : writing genesis block to disk failed");
-
+        LogPrintf("wrote disk to block, about to add to index \n");
         if (!block.AddToBlockIndex(nFile, nBlockPos, hashProofOfStake))
             return error("LoadBlockIndex() : genesis block not accepted");
+        LogPrintf("added to block index \n");
     }
 
     return true;

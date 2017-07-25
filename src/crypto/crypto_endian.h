@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_COMPAT_ENDIAN_H
-#define BITCOIN_COMPAT_ENDIAN_H
+#ifndef _SYS_ENDIAN_H_BITCOIN
+#define _SYS_ENDIAN_H_BITCOIN
 
 #if defined(HAVE_CONFIG_H)
 #include "config/bitcoin-config.h"
@@ -13,9 +13,13 @@
 
 #include "byteswap.h"
 
-#ifndef WIN32
+#ifdef __linux__
 
 #include <endian.h>
+
+#elif __APPLE__
+
+#include <sys/endian.h>
 
 #else
 
@@ -192,5 +196,7 @@ inline uint64_t le64toh(uint64_t little_endian_64bits)
 #endif // HAVE_DECL_LE64TOH
 
 #endif // WORDS_BIGENDIAN
+
 #endif // windows
+
 #endif // BITCOIN_COMPAT_ENDIAN_H
