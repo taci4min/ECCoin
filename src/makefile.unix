@@ -131,6 +131,7 @@ OBJS= \
     build/threads.o \
     build/scheduler.o \
     build/validation.o \
+    build/lockedpool.o \
 \
     build/crypto/sha256.o \
     build/crypto/chacha20.o \
