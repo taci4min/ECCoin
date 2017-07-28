@@ -341,7 +341,7 @@ public:
 
     CDataStream& read(char* pch, size_t nSize)
     {
-        if (nSize == 0) return;
+        assert(nSize > 0);
 
         // Read from the beginning of the buffer
         unsigned int nReadPosNext = nReadPos + nSize;
@@ -458,17 +458,12 @@ public:
 class CAutoFile
 {
 private:
-    // Disallow copies
-
     const int nType;
     const int nVersion;
 
     FILE* file;
 
 public:
-    CAutoFile(const CAutoFile&);
-    CAutoFile& operator=(const CAutoFile&);
-
 
     CAutoFile(FILE* filenew, int nTypeIn, int nVersionIn) : nType(nTypeIn), nVersion(nVersionIn)
     {
@@ -510,12 +505,13 @@ public:
     int GetType() const          { return nType; }
     int GetVersion() const       { return nVersion; }
 
-    void read(char* pch, size_t nSize)
+    CAutoFile read(char* pch, size_t nSize)
     {
         if (!file)
             throw std::ios_base::failure("CAutoFile::read: file handle is NULL");
         if (fread(pch, 1, nSize, file) != nSize)
             throw std::ios_base::failure(feof(file) ? "CAutoFile::read: end of file" : "CAutoFile::read: fread failed");
+        return(*this);
     }
 
     void ignore(size_t nSize)
@@ -531,12 +527,13 @@ public:
         }
     }
 
-    void write(const char* pch, size_t nSize)
+    CAutoFile write(const char* pch, size_t nSize)
     {
         if (!file)
             throw std::ios_base::failure("CAutoFile::write: file handle is NULL");
         if (fwrite(pch, 1, nSize, file) != nSize)
             throw std::ios_base::failure("CAutoFile::write: write failed");
+        return(*this);
     }
 
     template<typename T>

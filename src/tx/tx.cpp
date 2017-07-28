@@ -729,7 +729,7 @@ int64_t CTransaction::GetValueOut() const
 
 bool CTransaction::ReadFromDisk(CDiskTxPos pos, FILE** pfileRet)
 {
-    CAutoFile filein = CAutoFile(OpenBlockFile(pos.nFile, 0, pfileRet ? "rb+" : "rb"), SER_DISK, CLIENT_VERSION);
+    CAutoFile filein(OpenBlockFile(pos.nFile, 0, pfileRet ? "rb+" : "rb"), SER_DISK, CLIENT_VERSION);
     if (filein.IsNull())
         return error("CTransaction::ReadFromDisk() : OpenBlockFile failed");
 

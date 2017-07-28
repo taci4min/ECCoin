@@ -170,17 +170,6 @@ public:
         SetNull();
     }
 
-    CWallet(std::string strWalletFileIn)
-    {
-        nWalletVersion = FEATURE_BASE;
-        nWalletMaxVersion = FEATURE_BASE;
-        strWalletFile = strWalletFileIn;
-        fFileBacked = true;
-        nMasterKeyMaxID = 0;
-        pwalletdbEncryption = NULL;
-        nOrderPosNext = 0;
-    }
-
     void SetNull()
     {
         nWalletVersion = FEATURE_BASE;

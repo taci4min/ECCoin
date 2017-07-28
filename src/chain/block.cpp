@@ -333,7 +333,8 @@ uint256 CBlock::CheckMerkleBranch(uint256 hash, const std::vector<uint256>& vMer
 bool CBlock::WriteToDisk(unsigned int& nFileRet, unsigned int& nBlockPosRet)
 {
     // Open history file to append
-    CAutoFile fileout = CAutoFile(AppendBlockFile(nFileRet), SER_DISK, CLIENT_VERSION);
+    FILE* blockFile = AppendBlockFile(nFileRet);
+    CAutoFile fileout(blockFile, SER_DISK, CLIENT_VERSION);
     if (fileout.IsNull())
         return error("CBlock::WriteToDisk() : AppendBlockFile failed");
 
@@ -365,7 +366,8 @@ bool CBlock::ReadFromDisk(unsigned int nFile, unsigned int nBlockPos, bool fRead
     SetNull();
 
     // Open history file to read
-    CAutoFile filein = CAutoFile(OpenBlockFile(nFile, nBlockPos, "rb"), SER_DISK, CLIENT_VERSION);
+    FILE* blockFile = OpenBlockFile(nFile, nBlockPos, "rb");
+    CAutoFile filein(blockFile, SER_DISK, CLIENT_VERSION);
     if (filein.IsNull())
         return error("CBlock::ReadFromDisk() : OpenBlockFile failed");
     // Read block
