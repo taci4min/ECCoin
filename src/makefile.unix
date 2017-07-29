@@ -100,7 +100,7 @@ endif
 
 # CXXFLAGS can be specified on the make command line, so we use xCXXFLAGS that only
 # adds some defaults in front. Unfortunately, CXXFLAGS=... $(CXXFLAGS) does not work.
-xCXXFLAGS=-O2 $(EXT_OPTIONS) -pthread -w -Wextra -Wno-ignored-qualifiers -Wformat -Wformat-security -Wno-unused-parameter -std=c++11  -DBOOST_NO_CXX11_SCOPED_ENUMS -fpermissive\
+xCXXFLAGS=-O2 $(EXT_OPTIONS) -pthread -w -Wextra -Wno-ignored-qualifiers -Wformat -Wformat-security -Wno-unused-parameter -std=c++11  -DBOOST_NO_CXX11_SCOPED_ENUMS -fpermissive \
     $(DEBUGFLAGS) $(DEFS) $(HARDENING) $(CXXFLAGS)
 
 # LDFLAGS can be specified on the make command line, so we use xLDFLAGS that only
@@ -145,7 +145,6 @@ OBJS= \
     build/chain/checkpoints.o \
     build/chain/locator.o \
 \
-    build/tx/txdb-leveldb.o \
     build/tx/mempool.o \
     build/tx/merkletx.o \
     build/tx/tx.o \
@@ -194,8 +193,8 @@ DEFS += $(addprefix -I,$(CURDIR)/leveldb/include)
 DEFS += $(addprefix -I,$(CURDIR)/leveldb/helpers)
 OBJS += build/tx/txdb-leveldb.o
 leveldb/libleveldb.a:
-	@echo "Building LevelDB ..."; cd leveldb; make libleveldb.a libmemenv.a; cd ..;
-build/txdb-leveldb.o: leveldb/libleveldb.a
+	@echo "Building LevelDB ..."; cd leveldb; make; cd ..; 
+build/tx/txdb-leveldb.o: leveldb/libleveldb.a
 
 # auto-generated dependencies:
 -include build/*.P
@@ -245,7 +244,7 @@ clean:
 	-rm -f build/p2p/*.P
 	-rm -f build/wallet/*.o
 	-rm -f build/wallet/*.P
-
+	cd leveldb && make clean 
 
 
 
