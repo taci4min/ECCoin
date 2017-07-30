@@ -133,6 +133,10 @@ OBJS= \
     build/validation.o \
     build/lockedpool.o \
 \
+    build/crypto/sha512.o \
+    build/crypto/hmac_sha512.o \
+    build/crypto/sha1.o \
+    build/crypto/ripemd160.o \
     build/crypto/sha256.o \
     build/crypto/chacha20.o \
     build/crypto/hash.o \

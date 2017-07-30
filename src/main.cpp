@@ -742,10 +742,12 @@ bool LoadBlockIndex(bool fAllowNew)
         block.hashPrevBlock.SetNull();
         LogPrintf("about to build merkel tree \n");
         block.hashMerkleRoot = block.BuildMerkleTree();
+	LogPrintf("merkleRoot = %s \n", block.hashMerkleRoot.ToString().c_str());
         LogPrintf("built merkel tree \n");
         block.nVersion = 1;
         block.nTime    = 1393744307;
         block.nBits    = UintToArith256(bnProofOfWorkLimit).GetCompact();
+	LogPrintf("nbits = %u \n", block.nBits);
         block.nNonce   = 12799721;
 		    if(fTestNet)
         {

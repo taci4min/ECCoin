@@ -275,8 +275,10 @@ int64_t CBlock::GetMaxTransactionTime() const
 uint256 CBlock::BuildMerkleTree() const
 {
     vMerkleTree.clear();
-    BOOST_FOREACH(const CTransaction& tx, vtx)
+    for (const auto& tx: vtx){
         vMerkleTree.push_back(tx.GetHash());
+	LogPrintf("%s \n", tx.GetHash().ToString().c_str());
+    }
     int j = 0;
     for (int nSize = vtx.size(); nSize > 1; nSize = (nSize + 1) / 2)
     {

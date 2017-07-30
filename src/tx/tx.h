@@ -322,6 +322,17 @@ public:
         SetNull();
     }
 
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
+        READWRITE(nVersion);
+        READWRITE(nTime);
+        READWRITE(vin);
+        READWRITE(vout);
+        READWRITE(nLockTime);
+    }
+/*
     template <typename Stream>
     inline void Serialize(Stream& s) const {
         SerializeTransaction(*this, s);
@@ -332,7 +343,7 @@ public:
     inline void Unserialize(Stream& s) {
         UnserializeTransaction(*this, s);
     }
-
+*/
 
     unsigned int GetTotalSize() const
     {

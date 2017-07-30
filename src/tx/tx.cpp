@@ -26,6 +26,7 @@ bool CTransaction::IsNull() const
 
 uint256 CTransaction::GetHash() const
 {
+    LogPrintf("about to return serialize hash \n");
     return SerializeHash(*this, SER_GETHASH);
 }
 
